@@ -4,6 +4,10 @@
 
 `field scale -> bottleneck -> prior attempts -> unresolved gap -> present study`
 
+For a broad-audience `Nature` summary paragraph, strengthen this into (See `references/nature-summary-paragraph.md`.):
+
+`broad field -> sharper background -> exact problem -> here we show -> what the result changes -> broader context / outlook`
+
 ## Paragraph jobs (typical 4-paragraph intro)
 
 1. Establish the field stake. Make it land for a non-specialist if the target is broad (Nature, Science).

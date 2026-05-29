@@ -61,6 +61,7 @@ The files under `references/` are deep references and the example library, not d
 
 - The user asks for a concrete example or template → `references/examples/index.md`.
 - A section's draft has structural problems that the section fragment alone does not explain → the matching `references/<section>.md`.
+- The user needs a broad-audience `Nature` abstract opening or asks about a `summary paragraph` → `references/nature-summary-paragraph.md`.
 - The user asks "does this paragraph flow?" → `references/paragraph-flow.md`.
 - The user asks for a self-review or rejection-risk audit → `references/paper-review.md`.
 

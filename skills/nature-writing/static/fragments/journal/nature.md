@@ -7,6 +7,7 @@ Broad, multi-disciplinary. A reader outside the immediate subfield must be able 
 ## Drafting priorities
 
 - The opening sentence of the abstract and the introduction must signal significance for a non-specialist audience without overclaiming.
+- For a `Nature` summary paragraph, use a staged funnel: `broad field -> sharper background -> exact problem -> here we show -> what the result changes -> broader context / outlook`.
 - Avoid jargon that does not appear in a typical Nature News piece. Define or replace.
 - Word count is unforgiving. Prefer cuts to compressions when a section runs long.
 - No em dashes in body prose.
@@ -16,6 +17,7 @@ Broad, multi-disciplinary. A reader outside the immediate subfield must be able 
 ## Section format notes
 
 - Abstract is usually unstructured prose (no headed subsections) for many Nature titles. Check the specific journal guideline if named.
+- When the abstract is effectively a `Nature` summary paragraph, make sure the gap sentence and the `Here we show` sentence are both explicit and separated in function.
 - Methods often goes to the end and can be longer than in subfield journals; the main text is significance-driven.
 - References are typically capped (~50 for Articles). Plan citation budget early.
 

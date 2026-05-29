@@ -76,6 +76,8 @@ references:
       path: references/article-architecture.md
     - condition: drafting/revising abstract; especially challenge-contribution forms
       path: references/abstract.md
+    - condition: drafting/revising a Nature-family broad-audience summary paragraph or introduction opening
+      path: references/nature-summary-paragraph.md
     - condition: drafting/revising introduction, task framing, technical challenge, contribution framing
       path: references/introduction.md
     - condition: rebuilding related work as topic synthesis
