@@ -9,7 +9,7 @@ Hello everyone, I’m Yuan Yizhe, a PhD student at Shanghai Jiao Tong University
     <td width="34%" valign="top" align="center" style="border: none; background-color: #f9f9f9; padding: 20px; border-radius: 8px;">
       <span style="font-size: 14px; color: #666;">微信群聊</span><br>
       <img width="1080" height="1632" alt="feae2bf93421fbf99d21f20f2cf5562a" src="https://github.com/user-attachments/assets/388f4f6c-9f3e-4582-8136-e15676dff889" />
-      <div style="margin-top:10px; font-size: 13px; color: #666;">答疑交流群！进群记得12小时内备注</div>
+      <div style="margin-top:10px; font-size: 13px; color: #666;">答疑交流群！进群请立刻改备注</div>
     </td>
     <td width="66%" valign="top" style="border: none; line-height: 1.6;">
       还在寻找能够落地的 <strong>AI 前沿交叉赛道</strong>吗？我们课题组现向对“医学 + AI”充满热情的你发出邀请！<br><br>
