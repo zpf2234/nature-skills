@@ -10,7 +10,7 @@
     <td align="center">
       <b></b><br>
 
-      <img width="400" alt="232c0c2e87d7e52eb9cebff6dea41382" src="https://github.com/user-attachments/assets/625740a0-4a9d-4533-a041-8cf12148064a" />
+      <img width="400" alt="75f8d41ef756245038e548a4c9c165b2" src="https://github.com/user-attachments/assets/8f534d6a-ecc5-4825-a252-95b8a47ca674" />
     </td>
     <td align="center">
       <b>个人微信</b><br>
