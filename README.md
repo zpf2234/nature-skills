@@ -52,65 +52,44 @@ If you have any feature requests or suggestions, please feel free to submit an I
 
 ## Installation
 
-`nature-skills` is a repository of reusable instruction bundles centred on `SKILL.md`.
-Each `skills/nature-*` directory is one installable unit. Copy the whole folder, not
-only `SKILL.md`, because many skills depend on `references/`, `static/`, assets,
-scripts, or README context. The `skills/_shared/` directory is shared support
-content used by several skills and should stay next to the `nature-*` folders
-when you install skills manually.
+`nature-skills` is a repository of reusable instruction bundles centered on
+`SKILL.md`. Each `skills/nature-*` directory is one installable unit.
 
-### 1. Codex
+For Codex users, the recommended path is simple: give Codex this repository link
+and ask it to install the skills for you.
 
-**Codex plugin marketplace installation**
-
-This repository includes Codex plugin packaging at `plugins/nature-skills/`, so
-Codex users can install the complete Nature Skills bundle from the plugin
-marketplace instead of copying each skill folder manually.
-
-CLI installation:
-
-```bash
-codex plugin marketplace add https://github.com/Yuan1z0825/nature-skills --ref main
-codex plugin add nature-skills@nature-skills
+```text
+https://github.com/Yuan1z0825/nature-skills.git
 ```
 
-Codex Desktop users can add the same repository as a custom plugin marketplace:
+Suggested prompt:
 
-- Marketplace source: `https://github.com/Yuan1z0825/nature-skills.git`
-- Branch/ref: `main`
-- Plugin: `nature-skills`
+```text
+Install the Codex skills from this repository:
+https://github.com/Yuan1z0825/nature-skills.git
 
-After installation, all `nature-*` skills are available through the plugin as a
-complete bundle, together with the shared support directory used by the newer
-router-style skills. If the skills do not appear immediately, refresh the plugin
-page or start a new Codex session.
+Please install the full skill folders under skills/, including skills/_shared,
+into my Codex skills directory. Do not copy only SKILL.md.
+```
 
-**Manual local-skill installation**
+For one skill, name it explicitly:
 
-Codex can also use these folders directly as local skills.
+```text
+Install only nature-reader from:
+https://github.com/Yuan1z0825/nature-skills.git
 
-**Clone the repo**
+Also install skills/_shared if the skill needs shared support files.
+```
+
+The important rule is to preserve the folder structure. Copy or reference the
+whole skill folder, not only `SKILL.md`, because many skills depend on
+`references/`, `static/`, `manifest.yaml`, scripts, assets, or shared files.
+
+Manual fallback for Codex:
 
 ```bash
 git clone https://github.com/Yuan1z0825/nature-skills.git
 cd nature-skills
-```
-
-**Install one skill**
-
-```bash
-mkdir -p ~/.codex/skills
-cp -R skills/_shared ~/.codex/skills/
-cp -R skills/nature-reader ~/.codex/skills/
-```
-
-Copying `_shared` is harmless even for skills that do not use it, and it avoids
-broken relative references for skills such as `nature-reader`, `nature-writing`,
-`nature-polishing`, and `nature-paper2ppt`.
-
-**Install all current skills**
-
-```bash
 mkdir -p ~/.codex/skills
 cp -R skills/_shared ~/.codex/skills/
 for d in skills/nature-*; do
@@ -118,96 +97,17 @@ for d in skills/nature-*; do
 done
 ```
 
-**Update after pulling new changes**
+After installation, start a fresh Codex session and ask naturally, for example:
+`Translate this paper into a full markdown reader.` or `Make this paper into a
+Chinese journal-club PPT.`
 
-```bash
-git pull
-cp -R skills/_shared ~/.codex/skills/
-for d in skills/nature-*; do
-  cp -R "$d" ~/.codex/skills/
-done
-```
+For Claude Code or other agents, keep a stable clone of this repository and
+create a thin subagent, slash command, or custom prompt wrapper that points to
+the real `skills/nature-*/SKILL.md` file and preserves `skills/_shared/`.
 
-**Finish**
+For the longer walkthrough and troubleshooting notes, see [`install.md`](install.md).
 
-- Restart Codex so newly added skills are picked up.
-- Then ask naturally, for example: `Translate this paper into a full markdown reader.` or
-  `Make this paper into a Chinese journal-club PPT.`
-
-If you prefer not to use the terminal, copying the `skills/nature-*` folder(s) into
-`~/.codex/skills/` manually works as well; also copy `skills/_shared/` once. For
-a longer walkthrough, see [`install.md`](install.md).
-
-### 2. Claude Code
-
-**Claude Code plugin marketplace installation**
-
-This repository also includes Claude Code plugin metadata at
-`.claude-plugin/`, so Claude Code users can install the complete Nature Skills
-bundle directly as a plugin instead of setting up wrappers first.
-
-CLI installation:
-
-```bash
-claude plugin marketplace add Yuan1z0825/nature-skills
-claude plugin install nature-skills@nature-skills
-```
-
-If the plugin does not appear immediately, refresh the plugin page or start a
-new Claude Code session.
-
-**Alternative: wrapper/subagent installation**
-
-Claude Code can also use a thin subagent or slash-command wrapper that points
-to a stable clone of this repository, so supporting files such as
-`references/`, `static/`, assets, scripts, and `skills/_shared/` remain
-available.
-
-```bash
-mkdir -p ~/ai-skills
-cd ~/ai-skills
-git clone https://github.com/Yuan1z0825/nature-skills.git
-```
-
-Create a user-level subagent wrapper:
-
-```bash
-mkdir -p ~/.claude/agents
-cat > ~/.claude/agents/nature-reader.md <<'EOF'
----
-name: nature-reader
-description: Full-paper bilingual, figure-aware, source-grounded Markdown reader for journal or conference papers. Use proactively when the user asks to translate an entire paper or generate a complete markdown reader.
----
-
-When invoked, first read `~/ai-skills/nature-skills/skills/nature-reader/SKILL.md`.
-Treat that file as the governing workflow.
-If the skill references supporting files, read only the specific files you need from
-`~/ai-skills/nature-skills/skills/nature-reader/` and
-`~/ai-skills/nature-skills/skills/_shared/`.
-Do not replace the skill with a generic paper-summary response.
-EOF
-```
-
-After that, start a new Claude Code session or open `/agents`, and invoke it
-naturally or explicitly:
-
-```text
-Use the nature-reader subagent to turn this PDF into a full markdown reader.
-```
-
-If you prefer commands instead of subagents, create a project or user command under
-`.claude/commands/` or `~/.claude/commands/` that tells Claude Code to read the
-real `SKILL.md` from the cloned repository.
-
-Official Claude Code docs:
-
-- [Subagents](https://docs.anthropic.com/en/docs/claude-code/sub-agents)
-- [Slash commands](https://docs.anthropic.com/en/docs/claude-code/slash-commands)
-
-### 3. Other agents or manual use
-
-If your agent supports reusable prompt files, system prompts, or agent profiles, the minimum
-portable unit is the skill directory itself:
+Portable skill-folder layout:
 
 ```text
 skills/
@@ -220,7 +120,7 @@ skills/
     └── references/...
 ```
 
-In that case:
+For manual or non-Codex use:
 
 1. Copy the whole skill directory into your prompt library or project.
 2. Preserve `SKILL.md`, `manifest.yaml`, `static/`, `references/`, scripts, assets,
