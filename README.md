@@ -140,9 +140,11 @@ skills/
 │   ├── manifest.yaml     # router-style 技能会包含
 │   ├── static/           # router-style 技能会包含
 │   └── references/...
-└── openclaw-medical-skills/
+└── nature-proposal-writer/
     ├── README.md
     ├── SKILL.md
+    ├── scripts/...
+    ├── templates/...
     └── references/...
 ```
 
@@ -162,6 +164,8 @@ skills/
 
 ## 技能索引
 
+当前 `skills/` 下包含以下可触发技能；`skills/_shared/` 是共享内容目录，不计入技能索引。
+
 | 技能 | 状态 | 用途 | 触发词 |
 |-------|--------|---------|-----------------|
 | [`nature-figure`](skills/nature-figure/README.md) | Stable | 面向 Nature / 高影响力期刊的 Python 或 R 投稿级科研图工作流，内置 figures4papers demo | “Nature figure”, “投稿级图片”, “publication plot”, “scientific figure”, “figures4papers” |
@@ -176,6 +180,8 @@ skills/
 | [`nature-paper-to-patent`](skills/nature-paper-to-patent/README.md) | Beta | 从论文、技术报告或项目材料生成有证据约束的中国发明专利草稿 | “paper to patent”, “Chinese patent”, “论文转专利”, “权利要求书” |
 | [`nature-academic-search`](skills/nature-academic-search/README.md) | Beta | 多源文献检索、引用核验和参考文献管理 | “search papers”, “find articles”, “literature search”, “查文献”, “verify DOI” |
 | [`nature-downloader`](skills/nature-downloader/README.md) | Beta | 通过图书馆资源入口、Chrome 登录态和开放获取路径合法获取学术全文/PDF | “download papers”, “图书馆下载文献”, “CARSI”, “Web of Science”, “PDF 下载” |
+| [`nature-literature-pipeline`](skills/nature-literature-pipeline/README.md) | Stable | 自动化文献发现管线：多源检索、六维评分、精读推送和本地归档 | “literature pipeline”, “每日文献”, “文献推送”, “daily literature push”, “cron” |
+| [`nature-proposal-writer`](skills/nature-proposal-writer/README.md) | Beta | proposal-first 科研写作状态机，先建立证据、论证和章节契约，再起草或审查文本 | “researchwrite”, “proposal”, “开题报告”, “研究方案”, “科研写作 QA” |
 
 ---
 
