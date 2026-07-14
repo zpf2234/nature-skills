@@ -7,23 +7,38 @@ metadata:
 
 # Nature Literature Downloader
 
-This skill turns a user's legitimate institutional access into a repeatable process for configuring, finding, downloading, and reading academic full text. It combines a first-run library-resource configuration wizard (`src/`, `data/`, `scripts/configure_school.py`) with browser-based download scripts (`scripts/batch_download.mjs`, `scripts/browser_pdf_downloader.mjs`) that reuse the user's already-authenticated Chrome session.
+This skill provides two lawful download paths: open-access (OA) retrieval for users without paid library resources, and institution-authorized retrieval for users with paid library/database access. It combines OA discovery with a first-run library-resource configuration wizard (`src/`, `data/`, `scripts/configure_school.py`) and browser-based download scripts (`scripts/batch_download.mjs`, `scripts/browser_pdf_downloader.mjs`).
 
 Verified routes are examples, not defaults. Every institution should start from the user's actual library resource URL, because resource portals, CAS callbacks, EZproxy, WebVPN, IP-authenticated database pages, and database detail pages reveal the live authorization path more reliably than a school name.
 
-> **Access model — read this first.** For a new user, do not begin by asking for the school name or by applying a preset. First ask for the library electronic-resource link they actually use. Inspect that URL to classify the route as a resource portal, CAS/SSO login, CARSI/Shibboleth, EZproxy, WebVPN, IP-authorized database page, or publisher/database detail page. School presets are optional enrichment and fallback only.
+> **Access model — read this first.** Before asking for a school name, library URL, login, or configuration, ask whether the user has access to paid library/institutional subscription resources. If yes, continue with the existing library-resource configuration and authorized-download workflow. If no, skip all institutional configuration and login requirements and use the OA-only download path.
 
-> **Main workflow.** First configure and save the user's real library resource entry. Let the user log in through Chrome when the route reaches institutional authentication. Reuse the saved entry plus the current browser login state for later papers. For each paper, try legitimate open-access sources first; if the article is open access, download directly. Otherwise use the library route. If the library route clearly has no permission, tell the user directly instead of treating it as a generic download failure.
+> **Main workflow.** First choose the access branch. With paid library resources, configure and save the user's real library resource entry, let the user authenticate in Chrome, and then continue the existing workflow, including checking legitimate OA sources before using the library route. Without paid library resources, search and download only from legitimate OA sources; do not ask for institutional configuration or login and do not attempt paywall bypasses.
 
-> **Chinese literature default.** When the user provides a Chinese title and no DOI/PDF URL/topic route, use the CNKI route by default. Reuse the user's current Chrome library/CNKI login state, prefer the configured `discovery.cnki_url` entry when present. Slider CAPTCHAs and simple robot checks on CNKI or publisher pages will be automatically attempted via CDP-simulated interactions. Stop for the user only if auto-verification fails or if the page asks for QR login, SMS/OTP, or image-based CAPTCHA.
+> **Chinese literature default.** On the paid-library branch, when the user provides a Chinese title and no DOI/PDF URL/topic route, use the CNKI route by default. Reuse the user's current Chrome library/CNKI login state and prefer the configured `discovery.cnki_url` entry when present. On the OA-only branch, do not require CNKI or institutional login; search only lawful OA sources. Slider CAPTCHAs and simple robot checks on authorized routes may be attempted via CDP-simulated interactions. Stop for the user only if auto-verification fails or if the page asks for QR login, SMS/OTP, or image-based CAPTCHA.
 
 > **Browser-state principle.** Authorized downloads depend on the exact browser profile where the user is logged in. If a proxy, CDP session, or browser automation tool opens a fresh profile or a different browser with no login state, do not treat the failure as missing library permission. Switch to a control path that reuses the user's active browser session, or ask the user to authenticate in the controlled browser instance.
 
 > **Format principle.** PDF, HTML full text, and database-native formats such as CAJ are different deliverables. If the user asks for PDF only, require a real PDF link or `%PDF` response and report `no_authorized_pdf_found` / `pdf_fetch_failed` when none exists. Do not save CAJ, HTML, or a login page as if it were a PDF.
 
-## First-Run Resource Configuration
+## First-Run Access Choice
 
-For a brand-new user, ask for a library resource URL first:
+For a brand-new user, ask this before any other setup question:
+
+```text
+你是否有可用的付费图书馆/学校/机构订阅资源，可以通过机构账号访问数据库或论文全文？
+```
+
+Branch on the answer:
+
+- **Yes:** Continue with **Paid Library Resource Configuration** below and then follow the existing authorized-download workflow.
+- **No:** Use the **OA-Only Download Path** below. Do not ask for the user's school, library URL, institutional account, or login state.
+
+If the answer is unclear, briefly explain that paid resources include university/library database subscriptions, CARSI/SSO access, EZproxy/WebVPN, or institution-authorized publisher access, then ask the same yes/no question once.
+
+### Paid Library Resource Configuration
+
+Ask for the library resource URL the user actually uses:
 
 ```text
 请发你平时进入图书馆电子资源/数据库的平台链接。
@@ -63,6 +78,22 @@ LIT_DL_CONFIG_DIR=/path/to/configdir
 The downloader reads this config automatically. If `discovery.web_of_science_url` is present, `scripts/batch_download.mjs` uses it as the Web of Science entry; otherwise it falls back to `https://webofscience.clarivate.cn/wos/woscc/basic-search`.
 
 For Chinese literature, the downloader also reads `discovery.cnki_url` when present. If absent, `scripts/batch_download.mjs --title "<中文题名>"` falls back to `https://kns.cnki.net/kns8s/defaultresult/index`.
+
+### OA-Only Download Path
+
+When the user has no paid library resources:
+
+1. Collect a DOI, PMID, exact title, article URL, or a definite paper list.
+2. Search only legitimate OA sources, such as PMC, publisher OA pages, arXiv, and other lawful repositories or clearly open PDF URLs.
+3. For an exact title, prefer:
+
+   ```bash
+   node scripts/batch_download.mjs --title "<exact title>" --open-access --out "<project>"
+   ```
+
+   Use `--pdf-url` when the user supplies a known legitimate OA PDF URL.
+4. Verify the downloaded file and record the source. Mark a successful PDF as `open_access_downloaded`.
+5. If no lawful OA full text or PDF is found, report that clearly and mark `no_authorized_pdf_found`. Do not redirect the user into institutional setup unless they later say they have paid library access.
 
 ## Resource URL Triage
 
@@ -115,7 +146,11 @@ Do not inspect or export cookies, passwords, local storage, browser profiles, or
 
 ## Preconditions
 
-Before attempting downloads, confirm these conditions:
+Before attempting downloads, confirm the conditions that apply to the selected access branch.
+
+For the OA-only branch, confirm the target paper identifier/list, output folder, Node.js 22+, and Python 3 when PDF verification needs it. Do not require a library configuration or institutional browser login.
+
+For the paid-library branch, confirm these conditions:
 
 1. The browser that holds the user's library/database login state is open on the user's machine.
 2. The school configuration exists and is valid.
