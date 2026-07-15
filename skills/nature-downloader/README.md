@@ -1,51 +1,178 @@
-# `nature-downloader` 技能
+# nature-downloader
 
-[English](README_EN.md)
+<p align="center">
+  <img src="assets/banner.jpg" alt="nature-downloader — 合法 OA、出版商 API 与机构授权全文下载" width="100%">
+</p>
 
-`nature-downloader` 用于在开放获取或用户本人机构授权范围内获取论文全文、PDF、HTML 全文或可追溯下载状态，补齐学术工作流中的“合法落地”环节。
+`nature-downloader` 按文献语言、出版商和可用凭据自动选择合法下载路线：
 
-## 适合用它做什么
+```text
+确认是否下载 SI
+→ 中文文献：只走 CNKI / 知网机构授权
+→ 英文文献
+   ├─ Elsevier / Springer Nature / IEEE 且有可用 Key
+   │  ├─ 出版商 API 成功：结束，不强制判断 OA
+   │  └─ API 失败：PMC → Unpaywall → 出版商 OA / 合法仓储
+   └─ 其他出版商：先查 OA，OA 不可用时走 Web Access 机构授权
+```
 
-- 首次配置学校图书馆、CARSI、EZproxy、WebVPN 或资源聚合平台入口。
-- 复用用户已经登录的 Chrome 机构会话下载可合法访问的论文 PDF。
-- 对 DOI、题名、出版社页面、PubMed 页面或 CNKI 中文题名尝试获取全文。
-- 用户明确要求时，可在 WoS 精确题名下载中通过 `--si` 同步下载补充资料，并按文章整理为干净文件夹。
-- 如果没有 PDF，保存 HTML、文本或说明可访问状态。
-- 对无法访问的文献给出原因：无权限、需用户登录、验证码、人机验证或馆藏缺失。
+不绕过付费墙、DRM、验证码或双重认证，不读取或导出浏览器 cookie、密码、localStorage 或 session 文件。
 
-## 典型请求
+## 下载前必须确认 SI
 
-- “帮我配置学校图书馆入口，以后下载论文时复用。”
-- “用我已经登录的 Chrome 把这些 DOI 的 PDF 下载到当前项目。”
-- “这篇中文文献走知网授权入口下载，能下就保存，不能下说明原因。”
+所有下载命令必须显式选择一次：
 
-## 你需要提供
+```bash
+--no-si  # 只下载正文
+--si     # 下载正文和可找到的 Supporting Information
+```
 
-- DOI、标题、论文页面链接或中文文献题名。
-- 学校图书馆数据库入口或已登录的 Chrome 会话。
-- 目标保存目录和文件命名偏好。
-- 是否需要同时下载 SI（补充资料）；默认不下载。
+两者均未提供时，脚本返回 `si_confirmation_required`，且不会创建输出目录或下载文件。两者同时提供时参数校验失败。批量任务的选择作用于整个批次。
 
-## 产出
+## 配置
 
-- 下载到本地的 PDF、HTML 或文本文件。
-- 每篇文献的访问路径、保存路径和失败原因。
-- 可复用的学校入口配置，通常位于 `~/.config/lit-dl/school.json`。
+### 图书馆与 CNKI
 
-## 运行和依赖
+优先保存用户实际使用的图书馆资源入口：
 
-- 首次配置可使用 `scripts/configure_school.py` 识别和保存资源入口。
-- 真实下载依赖本机浏览器登录状态和可用的 web-access / CDP 控制能力。
-- 中文文献默认优先使用用户已授权的 CNKI 或图书馆知网入口。
+```bash
+python3 scripts/configure_school.py infer "https://example.edu/library/resources"
+python3 scripts/configure_school.py url "https://example.edu/library/resources"
+python3 scripts/configure_school.py show
+python3 scripts/configure_school.py health --force
+```
 
-## 边界
+普通配置保存在 `~/.config/lit-dl/school.json`。
 
-- 不绕过付费墙，不使用镜像站，不读取或导出 cookie、密码、localStorage 或 session 文件。
-- 遇到可见滑块、复选框、人机检查或简单验证按钮时，先在同一个已登录浏览器标签页内进行至多两次有限尝试，成功后继续下载。
-- 仅在自动尝试失败，或遇到图片选择、二维码确认、短信/OTP、Passkey、硬件密钥和双重认证时，请用户本人在浏览器里完成。
-- 没有合法权限时，只报告状态和可选替代路径。
+### 出版商 API
 
-## 相关技能
+非 OA 英文文献命中对应出版商时才需要配置：
 
-- `nature-reader`：把已获取的 PDF/HTML 做成全文阅读材料。
-- `nature-academic-search`：从题名、DOI 或主题找到目标论文。
+- Elsevier：[Developer Portal](https://dev.elsevier.com/)
+- Springer Nature：[API Access](https://dev.springernature.com/docs/quick-start/api-access/)
+- IEEE：[Developer Registration](https://developer.ieee.org/member/register)
+
+使用隐藏输入保存 API key：
+
+```bash
+python3 scripts/configure_credentials.py set elsevier
+python3 scripts/configure_credentials.py set springer_nature
+python3 scripts/configure_credentials.py set ieee --fulltext-endpoint 'https://issued-endpoint.example/articles/{doi}'
+python3 scripts/configure_credentials.py show
+python3 scripts/configure_credentials.py validate elsevier
+python3 scripts/configure_credentials.py delete elsevier
+```
+
+当用户已经主动在对话中提供出版商 API key 时，agent 应直接使用标准输入安全保存，不要求重新生成，也不在命令参数、回复或 manifest 中回显：
+
+```bash
+python3 scripts/configure_credentials.py set elsevier --stdin
+```
+
+未主动提供时仍优先使用本地隐藏输入。机构密码、OTP、Cookie 和会话令牌不适用此规则。
+
+Elsevier 获得机构 token 时可额外传入 `--insttoken` 或 `--authtoken`。IEEE 普通 Metadata API key 不代表收费全文权限；只有获得 Full-Text Access API 产品后，才配置由 IEEE 提供的 endpoint 模板。秘密保存在 `~/.config/lit-dl/credentials.json`，文件权限为 `0600`，展示时只显示末四位。
+
+Unpaywall 需要合规联系邮箱：
+
+```bash
+python3 scripts/configure_credentials.py contact-email researcher@example.org
+```
+
+该邮箱保存在非秘密配置 `~/.config/lit-dl/settings.json`。
+
+## 下载示例
+
+按 DOI 下载正文：
+
+```bash
+node scripts/batch_download.mjs \
+  --dois "10.1007/s00122-021-03957-1,10.1111/pbi.14066" \
+  --no-si \
+  --out "./文献自动下载"
+```
+
+中文题名只走知网：
+
+```bash
+node scripts/batch_download.mjs \
+  --title "乡村振兴背景下数字治理研究" \
+  --no-si \
+  --out "./文献自动下载"
+```
+
+默认 PDF 优先、允许 CAJ；只接受 PDF 时增加 `--cnki-format pdf`。学校提供专用知网入口时增加 `--cnki-url URL`。
+
+英文 OA 精确题名：
+
+```bash
+node scripts/batch_download.mjs \
+  --title "Attention Is All You Need" \
+  --open-access \
+  --no-si \
+  --out "./文献自动下载"
+```
+
+主题检索并下载 SI：
+
+```bash
+node scripts/batch_download.mjs \
+  --topic "rice blast resistance gene" \
+  --count 10 \
+  --si \
+  --out "./文献自动下载"
+```
+
+已知合法全文 URL：
+
+```bash
+node scripts/batch_download.mjs \
+  --pdf-url "https://arxiv.org/pdf/1706.03762" \
+  --title "Attention Is All You Need" \
+  --no-si \
+  --out "./文献自动下载"
+```
+
+元数据冲突时可用 `--language zh|en` 或 `--route cnki|open_access|elsevier|springer_nature|ieee|web_access` 覆盖。`--source-url` 指向 CNKI 时强制中文 CNKI 路由。
+
+## API 失败与 Web Access 回退
+
+三家 API 返回无 entitlement 或无全文时，会先自动尝试 PMC、Unpaywall、出版商 OA 和合法仓储。只有 API 与 OA 都未取得全文时，才返回 `api_fallback_confirmation_required`；确认后按出版商重新运行：
+
+```bash
+--api-fallback-web-for elsevier
+--no-api-fallback-web-for springer_nature
+```
+
+全批次统一选择也可使用 `--api-fallback-web` 或 `--no-api-fallback-web`。Web Access 复用用户已登录的 Chrome 机构会话；登录、QR、OTP 和复杂验证仍由用户本人完成。
+
+如果 PMC/Unpaywall 等 OA 检查无法确认文章状态，manifest 会记录 OA assessment 为 `unknown`，但不会把它误标为非 OA；后续仍可使用机构 Web Access 寻找授权全文。
+
+## 输出
+
+```text
+文献自动下载/
+  PDFs/
+  FullText/
+  CNKI/
+  SupportingInformation/
+  manifest.json
+```
+
+`manifest.json` 记录规范 DOI、语言、出版商、路由、OA 证据、访问模式、正文格式、MIME、大小、SHA-256、SI 选择和失败原因，并递归移除 API key、token、cookie 等秘密字段。
+
+正文成功格式包括：
+
+- PDF：`downloaded` / `open_access_downloaded`
+- CNKI CAJ、Springer JATS/XML：`native_fulltext_downloaded`
+- 可读 HTML 全文：`full_text_html_available`
+- 正文和 SI：`downloaded_with_si`
+
+## 验证
+
+```bash
+python3 -m unittest discover -s tests/python
+node --test tests/unit/*.test.mjs
+node --check scripts/batch_download.mjs
+node --check scripts/browser_pdf_downloader.mjs
+```

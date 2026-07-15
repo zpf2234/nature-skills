@@ -1,4 +1,4 @@
-// PDF fetch + disk-streaming helpers for the SJTU literature downloader.
+// PDF fetch + disk-streaming helpers for nature-downloader.
 //
 // All functions take proxy + target explicitly so they work regardless of
 // which script calls them. Bytes are fetched inside the page's authenticated
@@ -13,6 +13,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { evalJs } from "./cdp-utils.mjs";
 import { STATUS } from "./status-codes.mjs";
+import { classifyFullTextContent } from "./provider-utils.mjs";
 
 const DEFAULT_MAX_BYTES = 200 * 1024 * 1024; // 200 MB guard
 const DEFAULT_CHUNK = 1048576; // 1 MB per base64 round-trip
@@ -50,7 +51,7 @@ export async function fetchToBuffer(
   { requirePdf = true, maxBytes = DEFAULT_MAX_BYTES } = {}
 ) {
   // Random window var name so concurrent tabs don't clobber each other.
-  const varName = `__sjtuPdf_${Math.random().toString(36).slice(2, 10)}`;
+  const varName = `__litDlBytes_${Math.random().toString(36).slice(2, 10)}`;
   const js = `(async()=>{try{
     const r=await fetch(${JSON.stringify(url)},{credentials:'include'});
     const ab=await r.arrayBuffer();
@@ -171,4 +172,16 @@ export async function fetchAnyToFile(proxy, target, url, outPath, { onProgress, 
     contentDisposition: meta.contentDisposition,
     finalUrl: meta.url,
   };
+}
+
+export async function fetchNativeToFile(proxy, target, url, outPath, { allowedFormats = ["caj", "html", "jats_xml"], onProgress, maxBytes } = {}) {
+  const meta = await fetchToBuffer(proxy, target, url, { requirePdf: false, maxBytes });
+  if (!meta.ok) return { ok: false, err: meta.err };
+  const classification = classifyFullTextContent({ contentType: meta.contentType, head: meta.head });
+  if (!classification.valid || !allowedFormats.includes(classification.format)) {
+    await evalJs(proxy, target, `delete window['${meta.varName}']`).catch(() => {});
+    return { ok: false, err: classification.reason || `unexpected format ${classification.format}` };
+  }
+  const result = await streamToDisk(proxy, target, meta.varName, meta.size, outPath, DEFAULT_CHUNK, onProgress);
+  return { ok: true, ...result, format: classification.format, contentType: meta.contentType, finalUrl: meta.url };
 }

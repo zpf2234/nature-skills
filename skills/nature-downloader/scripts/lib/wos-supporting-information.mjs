@@ -233,4 +233,3 @@ export async function downloadWosSupportingInformation({
   const status = downloaded === attachments.length && failures.length === 0 ? "downloaded" : downloaded > 0 ? "partial" : "fetch_failed";
   return { status, found: attachments.length, downloaded, files, failures };
 }
-

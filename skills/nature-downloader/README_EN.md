@@ -2,11 +2,12 @@
 
 [中文说明](README.md)
 
-`nature-downloader` obtains paper full text, PDFs, HTML full text, or auditable download status through open-access routes or the user's own institution-authorized access.
+`nature-downloader` obtains paper full text, PDFs, HTML/XML full text, or auditable download status through publisher APIs, lawful open-access routes, CNKI, or the user's own institution-authorized access.
 
 ## What To Use It For
 
 - Configure a school library, CARSI, EZproxy, WebVPN, or resource-portal entry point for first use.
+- Prefer configured Elsevier, Springer Nature, or IEEE full-text APIs, then automatically try lawful OA sources when an API attempt fails.
 - Reuse the user's logged-in Chrome institutional session to download legally accessible PDFs.
 - Try to obtain full text from DOI, title, publisher page, PubMed page, or CNKI Chinese title.
 - When explicitly requested, use `--si` with an exact WoS title to download supplementary files into a clean per-article folder.
@@ -29,12 +30,13 @@
 ## Outputs
 
 - Local PDF, HTML, or text file.
-- Access path, save path, and failure reason for each paper.
+- Access path, OA/API fallback history, save path, integrity hash, and failure reason for each paper in `manifest.json`.
 - Reusable school-entry configuration, usually at `~/.config/lit-dl/school.json`.
 
 ## Runtime and Dependencies
 
 - First-time setup can use `scripts/configure_school.py` to identify and save resource entry points.
+- Publisher API keys are configured with `scripts/configure_credentials.py`, stored separately with owner-only permissions, and never written to manifests.
 - Real downloading depends on local browser login state and available web-access / CDP control.
 - Chinese papers default to the user's authorized CNKI or library CNKI entry point.
 
