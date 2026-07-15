@@ -105,6 +105,10 @@ know the skill name, explicitly say "use `nature-reader`" or "use
       <b>Agent Research Community</b><br>
       <img width="300" alt="Agent Research Community" src="https://github.com/user-attachments/assets/28d1886a-69be-46bc-a1cb-777d7510ddab" />
     </td>
+    <td align="center">
+      <b>Yuan's personal WeChat</b><br>
+      <img width="300" alt="personal wechat" src="https://github.com/user-attachments/assets/88e6b293-bda3-4094-94f9-aff4aa5a8842" />
+    </td>
   </tr>
 </table>
 
