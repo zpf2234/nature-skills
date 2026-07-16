@@ -28,9 +28,16 @@
 
 <img width="300" height="400" alt="Nature Skills 知识星球" src="https://github.com/user-attachments/assets/64e37909-0a48-4bfb-8471-c2aff971a0f6" />
 
+## 仓库自营
+
+- **服务内容**：ChatGPT Plus/Pro 代充与成品号服务，支持正规发票，并可在下单时选择稳定质保服务。
+- **服务入口**：[https://apiciyuan.top/cat/3](https://apiciyuan.top/cat/3)
+- **客服微信**：`naturegpt888`（咨询 / 发票）
+
+<img width="325" height="256" alt="ChatGPT Plus/Pro 服务" src="https://github.com/user-attachments/assets/0c7bc267-cedb-4c54-bdb5-a3b9a6a51848" />
+
 ## 目录
 
-- [仓库自营](#仓库自营)
 - [快速开始](#快速开始)
 - [主要贡献者](#主要贡献者)
 - [自己的一些浅薄观点](#自己的一些浅薄观点)
@@ -44,14 +51,6 @@
 - [共享设计原则](#共享设计原则)
 - [新增技能](#新增技能)
 - [Star 历史](#star-历史)
-
-## 仓库自营
-
-- **服务内容**：ChatGPT Plus/Pro 代充与成品号服务，支持正规发票，并可在下单时选择稳定质保服务。
-- **服务入口**：[https://apiciyuan.top/cat/3](https://apiciyuan.top/cat/3)
-- **客服微信**：`naturegpt888`（咨询 / 发票）
-
-<img width="325" height="256" alt="ChatGPT Plus/Pro 服务" src="https://github.com/user-attachments/assets/0c7bc267-cedb-4c54-bdb5-a3b9a6a51848" />
 
 ## 快速开始
 
