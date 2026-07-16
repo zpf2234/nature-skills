@@ -66,6 +66,10 @@ know the skill name, explicitly say "use `nature-reader`" or "use
   - Email: [travisma2233@gmail.com](mailto:travisma2233@gmail.com)
   - Google Scholar: [Xin-Rui Ma](https://scholar.google.com/citations?user=CDydADoAAAAJ&hl=en)
   - ResearchGate: [Xin-Rui Ma](https://www.researchgate.net/profile/Xin-Rui-Ma?ev=hdr_xprf)
+- **Bin Hu**: third contributor to the project and currently a master's student
+  at the School of Agriculture and Biology, Shanghai Jiao Tong University.
+  - GitHub: [Flyme886](https://github.com/Flyme886)
+  - Email: [mhoang12205@gmail.com](mailto:mhoang12205@gmail.com)
 
 # Some Personal Views
 
