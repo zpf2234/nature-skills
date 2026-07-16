@@ -87,7 +87,7 @@
 
 `nature-skills` 是一组围绕 `SKILL.md` 组织的可复用技能包。`skills/` 下的每个顶层技能目录都是一个可安装单元，例如 `nature-*`；`nature-shared` 是供其他技能读取的共享支持包。
 
-### 使用 npx skills 安装和更新
+### npx skills 安装方式
 
 需要先安装 [Node.js 18 或更高版本](https://nodejs.org/)。无需全局安装 CLI；先查看仓库中可安装的技能名：
 
@@ -204,7 +204,58 @@ git pull
 
 只要 wrapper 仍然指向这个稳定 clone 路径，就不需要重复复制技能文件。
 
-### Codex 推荐安装方式
+### Claude Code 自动更新（可选）
+
+如果你希望 Claude Code 每次开启会话时自动拉取上游更新，可以用 `scripts/autoupdate-skills.sh` 配合一个 `SessionStart` 钩子。
+
+这套方式把技能**直接复制**进 `~/.claude/skills/`（Claude Code 会自动发现该目录，技能以目录名直接加载），而不是使用上面的 wrapper。两种方式二选一即可。
+
+先保留一个**专用**的稳定 clone（只用于同步技能，请不要在里面做开发提交）：
+
+```bash
+mkdir -p ~/ai-skills
+git clone https://github.com/Yuan1z0825/nature-skills.git ~/ai-skills/nature-skills
+```
+
+首次安装，把技能复制进 Claude Code 的技能目录：
+
+```bash
+~/ai-skills/nature-skills/scripts/autoupdate-skills.sh --force
+```
+
+然后在 `~/.claude/settings.json` 里加一个 `SessionStart` 钩子（若已有 `hooks`，把这一项合并进去，不要整体覆盖）：
+
+```json
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/ai-skills/nature-skills/scripts/autoupdate-skills.sh",
+            "async": true,
+            "timeout": 120
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+`async: true` 让它在后台运行、不阻塞启动。脚本自带保护：默认 6 小时内不重复联网检查、断网或拉取失败自动跳过（`exit 0`，绝不卡住会话）、只有上游 HEAD 真正变化时才重新同步、并且拒绝在有未提交改动的 clone 上强行前进。拉到的新版会在**下一次**开启会话时生效（当前会话的技能已经加载完毕）。运行日志在 `~/.local/state/nature-skills/autoupdate.log`。
+
+目标目录与检查频率都可配置，因此 Codex 用户也可以把它加进 shell profile 或 cron：
+
+```bash
+# 默认同步到 ~/.claude/skills；用 --dest 指到别处，例如 Codex：
+~/ai-skills/nature-skills/scripts/autoupdate-skills.sh --dest ~/.codex/skills
+# 只在最多每小时检查一次：
+~/ai-skills/nature-skills/scripts/autoupdate-skills.sh --throttle 3600
+```
+
+### Codex 安装方式
 
 推荐使用仓库自带脚本安装或更新 Codex skills。脚本会同步 `skills/` 下所有顶层技能目录，并在复制后做 `diff` 验证；它不会覆盖其他无关 Codex skills。
 
