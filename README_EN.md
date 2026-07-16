@@ -125,7 +125,7 @@ know the skill name, explicitly say "use `nature-reader`" or "use
 such as `nature-*`; `nature-shared` is an installable support package read by
 other skills.
 
-### Install and update with npx skills
+### npx skills Installation
 
 Install [Node.js 18 or later](https://nodejs.org/) first. The CLI does not need
 to be installed globally. List the skill names available in this repository:
@@ -257,7 +257,70 @@ git pull
 As long as the wrapper still points to this stable clone path, no repeated file
 copy is needed.
 
-### Recommended Codex Installation
+### Claude Code Auto-Update (Optional)
+
+If you want Claude Code to pull upstream updates automatically on every session
+start, use `scripts/autoupdate-skills.sh` together with a `SessionStart` hook.
+
+This approach **copies** the skills straight into `~/.claude/skills/` (Claude Code
+auto-discovers that directory and loads each skill by its directory name) instead
+of using the wrappers above. Pick whichever one you prefer.
+
+Keep a **dedicated** stable clone (used only to sync skills — don't make dev
+commits inside it):
+
+```bash
+mkdir -p ~/ai-skills
+git clone https://github.com/Yuan1z0825/nature-skills.git ~/ai-skills/nature-skills
+```
+
+Install once, copying the skills into Claude Code's skills directory:
+
+```bash
+~/ai-skills/nature-skills/scripts/autoupdate-skills.sh --force
+```
+
+Then add a `SessionStart` hook to `~/.claude/settings.json` (merge this entry into
+an existing `hooks` block rather than replacing it):
+
+```json
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/ai-skills/nature-skills/scripts/autoupdate-skills.sh",
+            "async": true,
+            "timeout": 120
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+`async: true` runs it in the background so it never blocks startup. The script is
+safe to run constantly: it skips the network if it already checked within the last
+6 hours, silently skips when offline or the pull fails (`exit 0`, never stalling a
+session), re-syncs only when the upstream HEAD actually changed, and refuses to
+fast-forward a clone that has uncommitted changes. New skills take effect on the
+**next** session (the current one already loaded its skills). Logs go to
+`~/.local/state/nature-skills/autoupdate.log`.
+
+The destination and check interval are both configurable, so Codex users can add
+it to a shell profile or cron as well:
+
+```bash
+# Defaults to ~/.claude/skills; use --dest for another location, e.g. Codex:
+~/ai-skills/nature-skills/scripts/autoupdate-skills.sh --dest ~/.codex/skills
+# Check at most once per hour:
+~/ai-skills/nature-skills/scripts/autoupdate-skills.sh --throttle 3600
+```
+
+### Codex Installation
 
 Use the repository script to install or update Codex skills. It syncs every
 top-level skill directory under `skills/` and verifies the copied contents with
