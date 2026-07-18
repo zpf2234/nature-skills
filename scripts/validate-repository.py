@@ -72,15 +72,16 @@ def validate_readme(readme: pathlib.Path, skills: list[pathlib.Path]) -> list[Va
     errors: list[ValidationError] = []
     text = readme.read_text(encoding="utf-8")
     expected = {path.name for path in skills if path.name not in EXCLUDED_INDEX_DIRS}
+    expected_badge_count = len(expected)
 
     badges = BADGE_RE.findall(text)
     if not badges:
         errors.append(ValidationError(readme, "missing skills count badge"))
-    elif int(badges[0]) != len(skills):
+    elif int(badges[0]) != expected_badge_count:
         errors.append(
             ValidationError(
                 readme,
-                f"skills badge says {badges[0]}, but skills/ contains {len(skills)} directories",
+                f"skills badge says {badges[0]}, but {expected_badge_count} public skills are indexed",
             )
         )
 
