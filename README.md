@@ -570,6 +570,7 @@ One sentence describing the skill's role, main task, and usage boundary.
 提交前至少做这些 README 检查：
 
 ```bash
+python scripts/validate-readmes.py
 git diff --check
 for d in skills/nature-*; do
   [ -f "$d/README.md" ] && [ -f "$d/README_EN.md" ] || continue

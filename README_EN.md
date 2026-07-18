@@ -649,6 +649,7 @@ Optional sections must be inserted in both languages and in the same order. Comm
 Before submitting, run at least these README checks:
 
 ```bash
+python scripts/validate-readmes.py
 git diff --check
 for d in skills/nature-*; do
   [ -f "$d/README.md" ] && [ -f "$d/README_EN.md" ] || continue
