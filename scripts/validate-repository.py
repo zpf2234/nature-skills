@@ -3,15 +3,17 @@
 
 This lightweight check intentionally avoids optional runtime dependencies. It is
 safe to run locally and in CI to catch stale skill counts, broken README index
-links, and missing per-skill metadata before a documentation or skill change is
-merged.
+links, malformed JSON/TOML configs, and missing per-skill metadata before a
+documentation or skill change is merged.
 """
 
 from __future__ import annotations
 
+import json
 import pathlib
 import re
 import sys
+import tomllib
 from dataclasses import dataclass
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -21,6 +23,8 @@ SKILL_LINK_RE = re.compile(r"\[`(nature-[^`]+)`\]\(skills/([^/)]+)/README(?:_EN)
 BADGE_RE = re.compile(r"badge/skills-(\d+)-")
 EXCLUDED_INDEX_DIRS = {"nature-shared"}
 EXCLUDED_LINK_DIRS = {"nature-shared", "nature-<topic>"}
+JSON_FILE_RE = re.compile(r"(^|/)package-lock\.json$|\.json$")
+TOML_FILE_RE = re.compile(r"\.toml$")
 
 
 @dataclass
@@ -44,6 +48,23 @@ def validate_skill_layout(skills: list[pathlib.Path]) -> list[ValidationError]:
         for filename in required_files:
             if not (skill / filename).is_file():
                 errors.append(ValidationError(skill, f"missing required file {filename}"))
+    return errors
+
+
+def validate_structured_configs(skills: list[pathlib.Path]) -> list[ValidationError]:
+    errors: list[ValidationError] = []
+    for skill in skills:
+        for path in sorted(skill.rglob("*")):
+            if not path.is_file():
+                continue
+            rel = path.relative_to(ROOT).as_posix()
+            try:
+                if JSON_FILE_RE.search(rel):
+                    json.loads(path.read_text(encoding="utf-8"))
+                elif TOML_FILE_RE.search(rel):
+                    tomllib.loads(path.read_text(encoding="utf-8"))
+            except (OSError, UnicodeDecodeError, json.JSONDecodeError, tomllib.TOMLDecodeError) as exc:
+                errors.append(ValidationError(path, f"invalid structured config: {exc}"))
     return errors
 
 
@@ -94,6 +115,7 @@ def main() -> int:
 
     skills = skill_dirs()
     errors = validate_skill_layout(skills)
+    errors.extend(validate_structured_configs(skills))
     for readme in README_FILES:
         if readme.is_file():
             errors.extend(validate_readme(readme, skills))
