@@ -5,7 +5,7 @@ Checks every top-level directory under skills/ for:
 - required SKILL.md / README.md / README_EN.md / manifest.yaml files
 - matching SKILL.md frontmatter name and manifest.yaml name
 - valid manifest YAML
-- relative manifest paths that exist on disk
+- relative manifest route paths, fragments, and scripts that exist on disk
 - root README / README_EN skill badge count matching triggerable skills
 """
 from __future__ import annotations
@@ -36,18 +36,62 @@ def skill_frontmatter_name(skill_md: Path) -> str | None:
     return match.group(1).strip().strip('"\'') if match else None
 
 
-def iter_manifest_paths(node: Any):
+PATH_KEYS = {"path", "reference", "script", "backend_script"}
+
+
+def iter_manifest_paths(node: Any, parent_key: str | None = None):
+    """Yield file paths declared in manifest routing metadata.
+
+    Manifest routes can point at files in several shapes: explicit `path`,
+    `reference`, or `script` keys; `always_load` lists; and `axes.*.values`
+    mappings whose values are fragment paths. Keep environment/config fields such
+    as `default_config` out of this check so local user paths are not treated as
+    repository files.
+    """
     if isinstance(node, dict):
-        if "path" in node:
-            yield str(node["path"])
-        for value in node.values():
-            yield from iter_manifest_paths(value)
+        for key, value in node.items():
+            key = str(key)
+            if key in PATH_KEYS and isinstance(value, str):
+                yield value
+            elif key == "values" and isinstance(value, dict):
+                for route_path in value.values():
+                    if isinstance(route_path, str):
+                        yield route_path
+                    else:
+                        yield from iter_manifest_paths(route_path, key)
+            else:
+                yield from iter_manifest_paths(value, key)
     elif isinstance(node, list):
         for value in node:
-            if isinstance(value, str):
+            if parent_key in {"always_load", "on_demand"} and isinstance(value, str):
                 yield value
             else:
-                yield from iter_manifest_paths(value)
+                yield from iter_manifest_paths(value, parent_key)
+
+
+def check_manifest_path(manifest_path: Path, skill_dir: Path, raw_path: str) -> str | None:
+    if not raw_path.strip():
+        return f"{manifest_path.relative_to(ROOT)}: empty referenced path"
+    candidate = Path(raw_path)
+    if candidate.is_absolute():
+        return f"{manifest_path.relative_to(ROOT)}: referenced path must be relative: {raw_path}"
+
+    parts = candidate.parts
+    if ".." in parts and not (len(parts) >= 2 and parts[0] == ".." and parts[1] == "nature-shared"):
+        return (
+            f"{manifest_path.relative_to(ROOT)}: referenced path may only leave the skill "
+            f"directory for ../nature-shared/: {raw_path}"
+        )
+
+    target = skill_dir / candidate
+    try:
+        target.resolve().relative_to(ROOT.resolve())
+    except ValueError:
+        return f"{manifest_path.relative_to(ROOT)}: referenced path escapes the repository: {raw_path}"
+
+    if not target.exists():
+        return f"{manifest_path.relative_to(ROOT)}: missing referenced path {raw_path}"
+    return None
 
 
 def check_badge_count(readme: Path, expected: int) -> list[str]:
@@ -90,9 +134,9 @@ def main() -> int:
             )
 
         for raw_path in iter_manifest_paths(manifest):
-            candidate = skill_dir / raw_path
-            if not candidate.exists():
-                errors.append(f"{manifest_path.relative_to(ROOT)}: missing referenced path {raw_path}")
+            error = check_manifest_path(manifest_path, skill_dir, raw_path)
+            if error:
+                errors.append(error)
 
     for readme in (ROOT / "README.md", ROOT / "README_EN.md"):
         if readme.exists():
