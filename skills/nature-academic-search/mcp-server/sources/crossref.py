@@ -132,7 +132,26 @@ class CrossRefSource:
                 original_error=exc,
             ) from exc
 
-        return resp.json().get("message", {})
+        try:
+            payload = resp.json()
+        except requests.JSONDecodeError as exc:
+            raise DataSourceError(
+                self.SOURCE_NAME,
+                f"Invalid JSON response from {url}",
+                original_error=exc,
+            ) from exc
+        if not isinstance(payload, dict):
+            raise DataSourceError(
+                self.SOURCE_NAME,
+                f"Unexpected JSON response from {url}",
+            )
+        message = payload.get("message", {})
+        if not isinstance(message, dict):
+            raise DataSourceError(
+                self.SOURCE_NAME,
+                f"Unexpected message payload from {url}",
+            )
+        return message
 
     # ------------------------------------------------------------------
     # Normalization

@@ -200,6 +200,40 @@ class TestCrossRefSearch:
 
     @patch("sources.crossref.get_config")
     @patch("sources.crossref.requests.get")
+    def test_search_invalid_json_raises_data_source_error(self, mock_get, mock_config):
+        import requests as real_requests
+
+        mock_config.return_value = _make_crossref_config()
+        mock_resp = MagicMock()
+        mock_resp.raise_for_status = MagicMock()
+        mock_resp.json.side_effect = real_requests.JSONDecodeError("bad json", "<html>", 0)
+        mock_get.return_value = mock_resp
+
+        from sources.crossref import CrossRefSource
+        from utils.errors import DataSourceError
+
+        source = CrossRefSource()
+        with pytest.raises(DataSourceError, match="Invalid JSON"):
+            source.search("test")
+
+    @patch("sources.crossref.get_config")
+    @patch("sources.crossref.requests.get")
+    def test_search_non_object_json_raises_data_source_error(self, mock_get, mock_config):
+        mock_config.return_value = _make_crossref_config()
+        mock_resp = MagicMock()
+        mock_resp.raise_for_status = MagicMock()
+        mock_resp.json.return_value = []
+        mock_get.return_value = mock_resp
+
+        from sources.crossref import CrossRefSource
+        from utils.errors import DataSourceError
+
+        source = CrossRefSource()
+        with pytest.raises(DataSourceError, match="Unexpected JSON"):
+            source.search("test")
+
+    @patch("sources.crossref.get_config")
+    @patch("sources.crossref.requests.get")
     def test_get_citation(self, mock_get, mock_config):
         mock_config.return_value = _make_crossref_config()
 
