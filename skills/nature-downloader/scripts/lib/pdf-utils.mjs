@@ -48,7 +48,7 @@ export async function fetchToBuffer(
   proxy,
   target,
   url,
-  { requirePdf = true, maxBytes = DEFAULT_MAX_BYTES } = {}
+  { requirePdf = true, maxBytes = DEFAULT_MAX_BYTES, evalImpl = evalJs } = {}
 ) {
   // Random window var name so concurrent tabs don't clobber each other.
   const varName = `__litDlBytes_${Math.random().toString(36).slice(2, 10)}`;
@@ -60,20 +60,26 @@ export async function fetchToBuffer(
     window['${varName}']=b;
     return JSON.stringify({ok:r.ok,status:r.status,size:b.length,head:Array.from(b.slice(0,64)),contentType:r.headers.get('content-type')||'',contentDisposition:r.headers.get('content-disposition')||'',url:r.url||location.href});
   }catch(e){return JSON.stringify({ok:false,err:String(e).slice(0,200)})}})()`;
-  const raw = await evalJs(proxy, target, js, 120000);
+  const raw = await evalImpl(proxy, target, js, 120000);
   const meta = JSON.parse(raw || "{}");
 
-  if (!meta.ok || !meta.size) {
-    return { ok: false, err: meta.err || "empty response", varName };
-  }
   if (meta.err === "pdf_too_large") {
     return { ok: false, err: STATUS.PDF_TOO_LARGE, size: meta.size, varName };
+  }
+  if (!meta.ok || !meta.size) {
+    await evalImpl(proxy, target, `delete window['${varName}']`).catch(() => {});
+    return {
+      ok: false,
+      err: meta.err || (meta.status ? `HTTP ${meta.status}` : "empty response"),
+      status: meta.status,
+      varName,
+    };
   }
   if (requirePdf) {
     const headBytes = meta.head || [];
     if (!isPdfHead(headBytes)) {
       // Clean up the window var before returning.
-      await evalJs(proxy, target, `delete window['${varName}']`).catch(() => {});
+      await evalImpl(proxy, target, `delete window['${varName}']`).catch(() => {});
       return { ok: false, err: "not a PDF (head mismatch)", head: meta.head, varName };
     }
   }
