@@ -96,9 +96,9 @@ def main() -> int:
 
     if log_path.exists():
         prev = log_path.read_text(encoding="utf-8")
-        if prev and not prev.endswith("\n"):
-            prev += "\n"
-        log_path.write_text(prev + "\n" + entry, encoding="utf-8")
+        separator = "\n" if not prev or prev.endswith("\n") else "\n\n"
+        with log_path.open("a", encoding="utf-8", newline="\n") as log_file:
+            log_file.write(separator + entry)
     else:
         log_path.write_text(FILE_HEADER + "\n" + entry, encoding="utf-8")
 
