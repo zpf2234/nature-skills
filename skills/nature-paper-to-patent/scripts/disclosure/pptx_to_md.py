@@ -63,14 +63,17 @@ def _rel_media_path(out_file: Path, media_file: Path) -> str:
 
 
 def _run(input_pptx: Path, output_md: Path, media_dir: Path | None) -> int:
-    Presentation, MSO_SHAPE_TYPE = _require_pptx()
-
     if not input_pptx.is_file():
         print(f"输入文件不存在: {input_pptx}", file=sys.stderr)
+        return 2
+    if input_pptx.resolve() == output_md.resolve():
+        print("输出 Markdown 不能覆盖输入 PowerPoint 文件。", file=sys.stderr)
         return 2
     suf = input_pptx.suffix.lower()
     if suf not in (".pptx", ".ppsx"):
         print("警告: 期望 .pptx / .ppsx（OOXML）；旧版 .ppt 不支持。", file=sys.stderr)
+
+    Presentation, MSO_SHAPE_TYPE = _require_pptx()
 
     output_md = output_md.resolve()
     output_md.parent.mkdir(parents=True, exist_ok=True)
