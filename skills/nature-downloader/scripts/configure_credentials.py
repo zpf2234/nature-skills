@@ -47,6 +47,8 @@ def _save(path: Path, value: dict, mode: int = 0o600) -> None:
 
 
 def _mask(value: str) -> str:
+    if len(value) <= 4:
+        return "*" * len(value)
     return "*" * max(0, len(value) - 4) + value[-4:]
 
 

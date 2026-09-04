@@ -34,7 +34,27 @@ class ConfigureCredentialsTest(unittest.TestCase):
         self.assertNotIn(secret, result.stdout)
         self.assertNotIn(secret, result.stderr)
         self.assertEqual(saved["elsevier"]["api_key"], secret)
-        self.assertEqual(mode, 0o600)
+        if sys.platform != "win32":
+            self.assertEqual(mode, 0o600)
+
+    def test_cli_never_echoes_a_short_key(self):
+        secret = "abcd"
+        with tempfile.TemporaryDirectory() as tmp:
+            env = os.environ.copy()
+            env["LIT_DL_CONFIG_DIR"] = tmp
+            result = subprocess.run(
+                [sys.executable, str(SCRIPT), "set", "elsevier", "--stdin"],
+                cwd=ROOT,
+                env=env,
+                input=secret + "\n",
+                text=True,
+                capture_output=True,
+            )
+
+        self.assertEqual(result.returncode, 0)
+        self.assertNotIn(secret, result.stdout)
+        self.assertNotIn(secret, result.stderr)
+        self.assertIn('"api_key": "****"', result.stdout)
 
 
 if __name__ == "__main__":
