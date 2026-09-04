@@ -157,6 +157,28 @@ class PackageConsistencyTests(unittest.TestCase):
 
         self.assertEqual([], findings)
 
+    def test_nested_formatting_inside_textcolor_is_unwrapped(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            clean_text = "The model uses cohort A for independent evaluation."
+            manuscript = self.write(root, "main.tex", clean_text)
+            response = self.write(
+                root,
+                "response.tex",
+                r"\ReviewerComment{Please clarify the evaluation cohort.}"
+                r"\AuthorResponse{We clarified the cohort.}",
+            )
+            clean = self.write(root, "clean.tex", clean_text)
+            marked = self.write(
+                root,
+                "marked.tex",
+                r"\textcolor{blue}{The \textbf{model} uses cohort A} for independent evaluation.",
+            )
+
+            findings = CHECKER.run_checks(manuscript, response, clean, marked)
+
+        self.assertEqual([], findings)
+
 
 if __name__ == "__main__":
     unittest.main()

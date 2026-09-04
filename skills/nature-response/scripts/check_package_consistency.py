@@ -120,6 +120,30 @@ def remove_single_argument_macros(text: str, macro_names: Iterable[str]) -> str:
         text = text[: match.start()] + text[closing + 1 :]
 
 
+def unwrap_textcolor_macros(text: str) -> str:
+    pattern = re.compile(r"\\textcolor\s*\{")
+    while True:
+        match = pattern.search(text)
+        if not match:
+            return text
+        color_opening = match.end() - 1
+        color_closing = matching_brace(text, color_opening)
+        if color_closing is None:
+            return text
+        content_match = re.match(r"\s*\{", text[color_closing + 1 :])
+        if not content_match:
+            return text
+        content_opening = color_closing + content_match.end()
+        content_closing = matching_brace(text, content_opening)
+        if content_closing is None:
+            return text
+        text = (
+            text[: match.start()]
+            + text[content_opening + 1 : content_closing]
+            + text[content_closing + 1 :]
+        )
+
+
 def strip_comments(text: str) -> str:
     return re.sub(r"(?<!\\)%.*$", "", text, flags=re.MULTILINE)
 
@@ -127,8 +151,8 @@ def strip_comments(text: str) -> str:
 def strip_revision_markup(text: str) -> str:
     text = remove_single_argument_macros(text, DELETION_MACROS)
     text = unwrap_single_argument_macros(text, MARKUP_MACROS)
+    text = unwrap_textcolor_macros(text)
     text = re.sub(r"\\color\s*\{[^{}]*\}", "", text)
-    text = re.sub(r"\\textcolor\s*\{[^{}]*\}\s*\{([^{}]*)\}", r"\1", text)
     return text
 
 
