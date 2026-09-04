@@ -212,8 +212,22 @@ def validate(data: dict) -> list[Finding]:
                     "FIGURE_SOURCE",
                     f"图{figure.get('number')}引用未知来源ID：{source_id}。",
                 )
-        end_nodes = set(str(node.get("id")) for node in figure.get("nodes", []))
+        node_ids = {
+            str(node.get("id"))
+            for node in figure.get("nodes", [])
+            if node.get("id") is not None
+        }
+        end_nodes = set(node_ids)
         for edge in figure.get("edges", []):
+            for endpoint in ("from", "to"):
+                node_id = str(edge.get(endpoint, ""))
+                if node_id not in node_ids:
+                    add(
+                        findings,
+                        "ERROR",
+                        "UNKNOWN_FIGURE_EDGE_NODE",
+                        f"图{figure.get('number')}连线的{endpoint}端引用未知节点：{node_id!r}。",
+                    )
             end_nodes.discard(str(edge.get("from")))
         for node in figure.get("nodes", []):
             if str(node.get("id")) in end_nodes and VAGUE_RESULT.search(str(node.get("label", ""))):

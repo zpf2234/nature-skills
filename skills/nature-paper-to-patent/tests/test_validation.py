@@ -151,6 +151,19 @@ class DraftValidationTests(unittest.TestCase):
         codes = {item.code for item in VALIDATOR.validate(draft)}
         self.assertIn("MISSING_CORE_EQUATIONS", codes)
 
+    def test_figure_edge_with_unknown_node_fails(self):
+        draft = valid_draft()
+        draft["figures"][0]["edges"][1]["to"] = "S4"
+
+        findings = VALIDATOR.validate(draft)
+
+        messages = [
+            item.message
+            for item in findings
+            if item.code == "UNKNOWN_FIGURE_EDGE_NODE"
+        ]
+        self.assertEqual(["图1连线的to端引用未知节点：'S4'。"], messages)
+
 
 if __name__ == "__main__":
     unittest.main()
