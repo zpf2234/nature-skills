@@ -26,7 +26,11 @@ def collect_pdfs(source: Path) -> list[Path]:
             raise ValueError(f"Input is not a PDF: {source}")
         return [source]
     if source.is_dir():
-        return sorted(path for path in source.rglob("*.pdf") if path.is_file())
+        return sorted(
+            path
+            for path in source.rglob("*")
+            if path.is_file() and path.suffix.lower() == ".pdf"
+        )
     raise FileNotFoundError(f"Input does not exist: {source}")
 
 
