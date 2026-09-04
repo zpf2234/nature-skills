@@ -51,6 +51,8 @@ def _shape_text(shape) -> str:
                 cells.append((cell.text or "").strip().replace("\n", " "))
             rows.append("| " + " | ".join(cells) + " |")
         if rows:
+            columns = len(shape.table.rows[0].cells)
+            rows.insert(1, "| " + " | ".join(["---"] * columns) + " |")
             return "\n".join(rows)
     return ""
 
