@@ -246,6 +246,18 @@ def validate(data: dict) -> None:
         raise ValueError(f"Claim numbers must be consecutive integers starting at 1: {numbers}")
 
 
+def missing_figure_images(data: dict, part: str, figure_dir: Path) -> list[Path]:
+    figures = data.get("figures", [])
+    if part in {"abstract", "abstract-figure"}:
+        figure = abstract_figure(data)
+        figures = [figure] if figure else []
+    return [
+        figure_dir / f"figure-{figure['number']}.png"
+        for figure in figures
+        if not (figure_dir / f"figure-{figure['number']}.png").is_file()
+    ]
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("draft", type=Path, help="UTF-8 JSON draft")
@@ -265,6 +277,13 @@ def main() -> int:
 
     data = json.loads(args.draft.read_text(encoding="utf-8"))
     validate(data)
+    if args.figure_dir:
+        missing = missing_figure_images(data, args.part, args.figure_dir)
+        if missing:
+            parser.error(
+                "missing rendered figure image(s): "
+                + ", ".join(str(path) for path in missing)
+            )
     document = Document()
     configure(document)
     if args.part == "claims":
