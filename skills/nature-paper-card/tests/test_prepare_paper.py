@@ -25,6 +25,37 @@ LONG_TEXT = (
 )
 
 
+class EvidenceInventoryTests(unittest.TestCase):
+    def test_common_caption_separators_are_recognized(self) -> None:
+        pages = [
+            {
+                "pdf_page": 1,
+                "printed_page": None,
+                "text": (
+                    "Fig. 1 | Overview of the study design.\n"
+                    "The second line remains part of the figure caption.\n"
+                    "Table 2. Participant characteristics.\n"
+                    "Figure 3—Validation results."
+                ),
+            }
+        ]
+
+        inventory = PREPARE.evidence_from_pages(pages)
+
+        self.assertEqual(
+            [item["id"] for item in inventory["figures"]],
+            ["Figure 1", "Figure 3"],
+        )
+        self.assertEqual(
+            inventory["figures"][0]["caption"],
+            "Overview of the study design. The second line remains part of the figure caption.",
+        )
+        self.assertEqual(
+            [item["id"] for item in inventory["tables"]],
+            ["Table 2"],
+        )
+
+
 class SourceMapLocatorTests(unittest.TestCase):
     def prepare(self, blocks: list[dict]) -> dict:
         with tempfile.TemporaryDirectory() as directory:

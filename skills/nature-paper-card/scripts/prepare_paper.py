@@ -36,7 +36,10 @@ SECTION_NAMES = {
     "appendix",
 }
 
-CAPTION_RE = re.compile(r"^\s*(Figure|Fig\.|Table)\s+(\d+[A-Za-z]?)\s*:\s*(.*)$", re.I)
+CAPTION_RE = re.compile(
+    r"^\s*(Figure|Fig\.|Table)\s+(\d+[A-Za-z]?)\s*[.:|—–-]\s*(.*)$",
+    re.I,
+)
 EQUATION_RE = re.compile(r"\((\d{1,2})\)\s*$")
 PRINTED_PAGE_RE = re.compile(r"^\s*(\d{4,6})\s*$", re.M)
 PAGE_LOCATOR_FIELDS = ("page", "page_number", "pdf_page")
