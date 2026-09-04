@@ -122,10 +122,6 @@ first_title = True
 while i < len(lines):
     line = lines[i].rstrip('\n')
 
-    if not line.strip():
-        i += 1
-        continue
-
     if line.strip().startswith('```'):
         if in_code:
             txt = '\n'.join(code_buf)
@@ -143,6 +139,10 @@ while i < len(lines):
 
     if in_code:
         code_buf.append(line)
+        i += 1
+        continue
+
+    if not line.strip():
         i += 1
         continue
 
