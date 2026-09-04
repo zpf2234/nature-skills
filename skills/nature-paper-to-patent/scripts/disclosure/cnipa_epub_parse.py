@@ -10,6 +10,7 @@ import json
 import re
 import sys
 from dataclasses import asdict, dataclass
+from html import unescape
 from pathlib import Path
 
 EPUB_BASE = "http://epub.cnipa.gov.cn/"
@@ -31,6 +32,7 @@ def _html_fragment_to_plain(html_snippet: str) -> str:
     t = re.sub(r"<script[^>]*>.*?</script>", "", html_snippet, flags=re.I | re.DOTALL)
     t = re.sub(r"<style[^>]*>.*?</style>", "", t, flags=re.I | re.DOTALL)
     t = re.sub(r"<[^>]+>", " ", t)
+    t = unescape(t)
     t = re.sub(r"\s+", " ", t).strip()
     t = re.sub(r"\s*全部\s*$", "", t).strip()
     return t
@@ -78,9 +80,9 @@ def parse_search_result_html(html: str, base_url: str = EPUB_BASE) -> list[EpubS
             row,
             re.IGNORECASE,
         ) or re.search(r">([^<]{6,200})<", row)
-        title = title_m.group(1).strip() if title_m else None
+        title = unescape(title_m.group(1)).strip() if title_m else None
         link_m = re.search(r'href="([^"]+)"', row)
-        href = link_m.group(1).strip() if link_m else None
+        href = unescape(link_m.group(1)).strip() if link_m else None
         link = _abs_url(href) if href else None
         pub_m = re.search(
             r"(CN\s*\d{9,}[A-Z]\s*|ZL\s*\d{9,}\.\d+)",
@@ -88,7 +90,8 @@ def parse_search_result_html(html: str, base_url: str = EPUB_BASE) -> list[EpubS
             re.IGNORECASE,
         )
         pub_number = pub_m.group(1).replace(" ", "") if pub_m else None
-        text = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", row)).strip()
+        text = unescape(re.sub(r"<[^>]+>", " ", row))
+        text = re.sub(r"\s+", " ", text).strip()
         if len(text) < 8 and not pub_number:
             continue
         hits.append(
@@ -139,13 +142,13 @@ def _parse_overview_card_layout(html: str) -> list[EpubSearchHit]:
             item_html,
             flags=re.IGNORECASE | re.DOTALL,
         )
-        title = re.sub(r"\s+", " ", tm.group(1)).strip() if tm else None
+        title = re.sub(r"\s+", " ", unescape(tm.group(1))).strip() if tm else None
         lm = re.search(
             r'title="(https?://epub\.cnipa\.gov\.cn/patent/[^"]+)"',
             item_html,
             flags=re.IGNORECASE,
         )
-        link = lm.group(1).strip() if lm else None
+        link = unescape(lm.group(1)).strip() if lm else None
         pm = re.search(
             r"(?:申请公布号|授权公告号)[：:]\s*</dt>\s*<dd>([^<]+?)</dd>",
             item_html,
@@ -153,7 +156,7 @@ def _parse_overview_card_layout(html: str) -> list[EpubSearchHit]:
         )
         pub_number = None
         if pm:
-            pub_number = pm.group(1).strip().replace(" ", "")
+            pub_number = unescape(pm.group(1)).strip().replace(" ", "")
             if not re.match(r"^(?:CN|ZL)", pub_number, re.IGNORECASE):
                 pub_number = None
         if not link and pub_number:
@@ -200,8 +203,8 @@ def _parse_search_result_fallback_links(html: str) -> list[EpubSearchHit]:
         html,
         flags=re.IGNORECASE | re.DOTALL,
     ):
-        href = (m.group(1) or "").strip()
-        title = (m.group(2) or "").strip()
+        href = unescape(m.group(1) or "").strip()
+        title = unescape(m.group(2) or "").strip()
         if not href.startswith("/") and "epub.cnipa.gov.cn" not in href:
             continue
         hlow = href.lower()
