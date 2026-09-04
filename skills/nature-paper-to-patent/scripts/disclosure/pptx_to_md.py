@@ -48,7 +48,8 @@ def _shape_text(shape) -> str:
         for row in shape.table.rows:
             cells = []
             for cell in row.cells:
-                cells.append((cell.text or "").strip().replace("\n", " "))
+                text = (cell.text or "").strip().replace("\n", " ")
+                cells.append(text.replace("\\", "\\\\").replace("|", "\\|"))
             rows.append("| " + " | ".join(cells) + " |")
         if rows:
             return "\n".join(rows)
