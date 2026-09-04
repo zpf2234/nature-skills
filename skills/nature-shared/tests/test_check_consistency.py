@@ -44,6 +44,16 @@ class ConsistencyCheckerTests(unittest.TestCase):
         findings = self.run_text("The score was 8.26 in Table 1 and 8.260 in the abstract.")
         self.assertIn("NUMERIC_PRECISION_VARIANT", {item.code for item in findings})
 
+    def test_sentence_final_decimal_is_checked(self) -> None:
+        findings = self.run_text(
+            "The abstract reports 8.26. The discussion reports 8.260."
+        )
+        self.assertIn("NUMERIC_PRECISION_VARIANT", {item.code for item in findings})
+
+    def test_numbered_list_marker_is_not_treated_as_a_value(self) -> None:
+        findings = self.run_text("1. First result was 4.2.\n1. A repeated list starts here.")
+        self.assertEqual([], findings)
+
     def test_equivalent_length_units_are_reported(self) -> None:
         findings = self.run_text("The cover was 35 mm in Methods and 3.5 cm in the caption.")
         self.assertIn(
