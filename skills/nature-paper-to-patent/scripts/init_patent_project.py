@@ -31,6 +31,10 @@ def main() -> int:
     )
     args = parser.parse_args()
 
+    paper = args.paper.resolve() if args.paper else None
+    if paper and not paper.is_file():
+        parser.error(f"paper does not exist: {paper}")
+
     project = args.project_dir.resolve()
     if project.exists() and any(project.iterdir()) and not args.force:
         parser.error("project directory is not empty; use --force to add missing structure")
@@ -51,10 +55,7 @@ def main() -> int:
                     ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
                 )
 
-    if args.paper:
-        paper = args.paper.resolve()
-        if not paper.is_file():
-            parser.error(f"paper does not exist: {paper}")
+    if paper:
         shutil.copy2(paper, project / "paper" / paper.name)
 
     intake = {
