@@ -13,7 +13,9 @@ REFERENCE = re.compile(
     r"权利要求\s*(\d+)(?:\s*[-—~～至]\s*(\d+))?"
     r"|权利要求\s*(\d+)\s*(?:或|、)\s*(\d+)"
 )
-TERM_INTRO = re.compile(r"(?:所述|该)([\u4e00-\u9fffA-Za-z][\u4e00-\u9fffA-Za-z0-9_-]{1,20})")
+TERM_INTRO = re.compile(
+    r"(?:所述|该)(?:的)?([\u4e00-\u9fffA-Za-z][\u4e00-\u9fffA-Za-z0-9_-]{1,20})"
+)
 PLACEHOLDER = re.compile(r"\[(?:TO CONFIRM|待确认)[^\]]*\]", re.IGNORECASE)
 
 
@@ -63,7 +65,6 @@ def audit(text: str) -> list[Finding]:
             Finding("ERROR", None, "NUMBER_SEQUENCE", f"编号应连续为{expected}，实际为{numbers}。")
         )
 
-    previous_text = ""
     claim_map = {}
     for number, body in claims:
         compact = normalize(body)
@@ -108,13 +109,17 @@ def audit(text: str) -> list[Finding]:
                 Finding("WARNING", number, "RESULT_LANGUAGE", "含结果或宣传性措辞，确认是否改为技术限定。")
             )
 
-        searchable_basis = previous_text + "".join(
-            claim_map.get(ref, "") for ref in refs
-        )
-        for term in sorted(set(TERM_INTRO.findall(body))):
+        searchable_basis = "".join(claim_map.get(ref, "") for ref in refs)
+        checked_terms = set()
+        for match in TERM_INTRO.finditer(body):
+            term = match.group(1)
+            if term in checked_terms:
+                continue
+            checked_terms.add(term)
             if term in {"方法", "装置", "设备", "系统", "步骤", "程序"}:
                 continue
-            if term not in searchable_basis and compact.find(term) <= 4:
+            prior_in_claim = normalize(body[: match.start(1)])
+            if term not in searchable_basis and term not in prior_in_claim:
                 findings.append(
                     Finding(
                         "WARNING",
@@ -123,8 +128,6 @@ def audit(text: str) -> list[Finding]:
                         f"术语“{term}”可能缺少清晰的前置基础。",
                     )
                 )
-        previous_text += compact
-
     return findings
 
 
