@@ -226,6 +226,26 @@ class TestCrossRefSearch:
 class TestPubMedSearch:
     """Test PubMed esearch + efetch flow with WebEnv/query_key handling."""
 
+    def test_article_title_preserves_text_around_inline_markup(self):
+        import xml.etree.ElementTree as ET
+
+        from sources.pubmed import _parse_article
+
+        article = ET.fromstring(
+            """
+            <PubmedArticle>
+                <MedlineCitation>
+                    <PMID>12345678</PMID>
+                    <Article>
+                        <ArticleTitle>Effects of <i>TP53</i> loss in cancer</ArticleTitle>
+                    </Article>
+                </MedlineCitation>
+            </PubmedArticle>
+            """
+        )
+
+        assert _parse_article(article)["title"] == "Effects of TP53 loss in cancer"
+
     @patch("sources.pubmed.get_config")
     @patch("sources.pubmed._get")
     def test_search_esearch_efetch_flow(self, mock_get, mock_config):
