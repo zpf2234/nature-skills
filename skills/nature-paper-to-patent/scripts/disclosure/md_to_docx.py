@@ -521,7 +521,7 @@ def _add_list_item(
 
 def _is_table_row(line: str) -> bool:
     s = line.strip()
-    return s.startswith("|") and s.endswith("|") and "|" in s[1:-1]
+    return s.startswith("|") and "|" in s[1:]
 
 
 def _split_table_cells(line: str) -> list[str]:
