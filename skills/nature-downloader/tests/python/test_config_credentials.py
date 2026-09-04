@@ -1,3 +1,4 @@
+import importlib.util
 import json
 import os
 import stat
@@ -10,9 +11,20 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "scripts" / "configure_credentials.py"
+SPEC = importlib.util.spec_from_file_location("configure_credentials", SCRIPT)
+assert SPEC and SPEC.loader
+MODULE = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(MODULE)
 
 
 class ConfigureCredentialsTest(unittest.TestCase):
+    def test_validation_only_accepts_successful_http_statuses(self):
+        self.assertEqual(MODULE._classify_validation_status(200), (True, "configured"))
+        self.assertEqual(MODULE._classify_validation_status(401), (False, "credentials_invalid"))
+        self.assertEqual(MODULE._classify_validation_status(403), (False, "credentials_invalid"))
+        self.assertEqual(MODULE._classify_validation_status(404), (False, "validation_failed"))
+        self.assertEqual(MODULE._classify_validation_status(500), (False, "validation_failed"))
+
     def test_cli_stdin_saves_key_without_echoing_it(self):
         secret = "publisher-secret-12345678"
         with tempfile.TemporaryDirectory() as tmp:

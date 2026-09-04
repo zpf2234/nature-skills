@@ -101,6 +101,14 @@ def _validation_request(provider: str, values: dict) -> urllib.request.Request:
     return urllib.request.Request(url, headers={"Accept": "application/json"})
 
 
+def _classify_validation_status(http_status: int) -> tuple[bool, str]:
+    if 200 <= http_status < 300:
+        return True, "configured"
+    if http_status in (401, 403):
+        return False, "credentials_invalid"
+    return False, "validation_failed"
+
+
 def cmd_validate(args: argparse.Namespace) -> int:
     values = _load(CREDENTIALS_FILE).get(args.provider)
     if not values or not values.get("api_key"):
@@ -114,8 +122,8 @@ def cmd_validate(args: argparse.Namespace) -> int:
     except OSError as error:
         print(json.dumps({"ok": False, "provider": args.provider, "status": "validation_failed", "error": str(error)}, ensure_ascii=False))
         return 1
-    valid = status not in (401, 403)
-    print(json.dumps({"ok": valid, "provider": args.provider, "http_status": status, "status": "configured" if valid else "credentials_invalid"}, ensure_ascii=False))
+    valid, validation_status = _classify_validation_status(status)
+    print(json.dumps({"ok": valid, "provider": args.provider, "http_status": status, "status": validation_status}, ensure_ascii=False))
     return 0 if valid else 1
 
 
