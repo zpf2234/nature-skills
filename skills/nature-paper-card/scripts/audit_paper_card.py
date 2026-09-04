@@ -391,6 +391,14 @@ def main() -> int:
     if args.locator_mode == "page-grounded" and not args.bundle:
         print("ERROR: page-grounded mode requires --bundle.", file=sys.stderr)
         return 2
+    if args.report:
+        report_path = args.report.resolve()
+        source_paths = {args.card.resolve()}
+        if args.bundle:
+            source_paths.add(args.bundle.resolve())
+        if report_path in source_paths:
+            print("ERROR: --report cannot overwrite --card or --bundle.", file=sys.stderr)
+            return 2
 
     try:
         card = args.card.read_text(encoding="utf-8")
@@ -403,7 +411,7 @@ def main() -> int:
     print_report(report)
 
     if args.report:
-        output = args.report.resolve()
+        output = report_path
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
         print(f"Wrote audit report: {output}")
