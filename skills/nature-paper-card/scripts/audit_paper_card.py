@@ -231,10 +231,19 @@ def audit(
                 )
             )
 
-    inventory = bundle.get("evidence_inventory", {}) if bundle else {}
+    raw_inventory = bundle.get("evidence_inventory", {}) if bundle else {}
+    inventory = raw_inventory if isinstance(raw_inventory, dict) else {}
     if bundle is not None:
+        if not isinstance(raw_inventory, dict):
+            findings.append(
+                finding(
+                    "error",
+                    "invalid_source_inventory",
+                    "The source bundle evidence_inventory must be an object.",
+                )
+            )
         for key, label in (("figures", "figure"), ("tables", "table"), ("equations", "equation")):
-            items = inventory.get(key, []) if isinstance(inventory, dict) else []
+            items = inventory.get(key, [])
             missing = [
                 item.get("id", "")
                 for item in items
