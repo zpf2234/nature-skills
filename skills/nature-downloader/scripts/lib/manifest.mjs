@@ -26,9 +26,9 @@ export function writeManifest(outDir, manifest) {
   const file = path.join(outDir, "manifest.json");
   const temp = `${file}.tmp-${process.pid}`;
   const payload = {
+    ...redact(manifest),
     version: 2,
     generated_at: new Date().toISOString(),
-    ...redact(manifest),
   };
   fs.writeFileSync(temp, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
   fs.renameSync(temp, file);

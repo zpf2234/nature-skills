@@ -25,3 +25,17 @@ test("manifest records route and SI choice without secrets", () => {
   assert.match(text, /"si_requested": false/);
   assert.match(text, /"provider": "elsevier"/);
 });
+
+test("manifest envelope metadata cannot be overridden by download data", () => {
+  const outDir = fs.mkdtempSync(path.join(os.tmpdir(), "manifest-"));
+  const file = writeManifest(outDir, {
+    version: 99,
+    generated_at: "caller-supplied",
+    results: [],
+  });
+
+  const manifest = JSON.parse(fs.readFileSync(file, "utf8"));
+  assert.equal(manifest.version, 2);
+  assert.notEqual(manifest.generated_at, "caller-supplied");
+  assert.equal(Number.isNaN(Date.parse(manifest.generated_at)), false);
+});
