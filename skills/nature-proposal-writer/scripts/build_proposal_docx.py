@@ -117,6 +117,7 @@ with open(inpath, encoding='utf-8') as f:
 i = 0
 in_code = False
 code_buf = []
+code_fence = None
 first_title = True
 
 while i < len(lines):
@@ -126,18 +127,27 @@ while i < len(lines):
         i += 1
         continue
 
-    if line.strip().startswith('```'):
-        if in_code:
-            txt = '\n'.join(code_buf)
-            p = doc.add_paragraph(style='Normal')
-            p.paragraph_format.left_indent = Cm(1.0)
-            run = p.add_run(txt)
-            run.font.name = 'Consolas'
-            run.font.size = Pt(9)
-            code_buf = []
-            in_code = False
-        else:
-            in_code = True
+    fence = re.match(r'^(`{3,}|~{3,})', line.strip())
+    if fence and not in_code:
+        in_code = True
+        code_fence = fence.group(1)
+        i += 1
+        continue
+
+    if (
+        fence
+        and fence.group(1)[0] == code_fence[0]
+        and len(fence.group(1)) >= len(code_fence)
+    ):
+        txt = '\n'.join(code_buf)
+        p = doc.add_paragraph(style='Normal')
+        p.paragraph_format.left_indent = Cm(1.0)
+        run = p.add_run(txt)
+        run.font.name = 'Consolas'
+        run.font.size = Pt(9)
+        code_buf = []
+        in_code = False
+        code_fence = None
         i += 1
         continue
 
