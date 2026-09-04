@@ -110,6 +110,15 @@ def table(headers, rows):
     doc.add_paragraph()
 
 
+def table_cells(line):
+    cells = line.strip().split('|')
+    if cells and not cells[0]:
+        cells = cells[1:]
+    if cells and not cells[-1]:
+        cells = cells[:-1]
+    return [cell.strip() for cell in cells]
+
+
 # Parse markdown
 with open(inpath, encoding='utf-8') as f:
     lines = f.readlines()
@@ -198,8 +207,8 @@ while i < len(lines):
             tbl_lines.append(lines[j].rstrip('\n'))
             j += 1
         if len(tbl_lines) >= 2:
-            headers = [c.strip() for c in tbl_lines[0].split('|')[1:-1]]
-            rows = [[c.strip() for c in l.split('|')[1:-1]] for l in tbl_lines[1:]]
+            headers = table_cells(tbl_lines[0])
+            rows = [table_cells(l) for l in tbl_lines[1:]]
             table(headers, rows)
         i = j
         continue
