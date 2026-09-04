@@ -559,9 +559,9 @@ def _format_basic_citation(paper: dict, style: str) -> str:
     This is a fallback for non-DOI papers where CrossRef content
     negotiation is not available.
     """
-    authors = paper.get("authors", [])
-    title = paper.get("title", "Untitled")
-    year = paper.get("year", "n.d.")
+    authors = paper.get("authors") or []
+    title = paper.get("title") or "Untitled"
+    year = paper.get("year") or "n.d."
     journal = paper.get("journal", "")
     doi = paper.get("doi", "")
     arxiv_id = paper.get("arxiv_id", "")

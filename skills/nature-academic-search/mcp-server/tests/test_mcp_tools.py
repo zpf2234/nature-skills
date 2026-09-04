@@ -93,3 +93,19 @@ def test_search_papers_mcp_dispatch_accepts_elsevier_sources(monkeypatch):
         "rows": 1,
         "filter_type": "journal-article",
     }
+
+
+def test_basic_citation_uses_nd_for_explicitly_missing_year():
+    from academic_search_server import _format_basic_citation
+
+    citation = _format_basic_citation(
+        {
+            "authors": ["Jane Doe"],
+            "title": "Undated preprint",
+            "year": None,
+            "arxiv_id": "1234.5678",
+        },
+        "apa",
+    )
+
+    assert citation == "Jane Doe (n.d.). Undated preprint. arXiv:1234.5678"
