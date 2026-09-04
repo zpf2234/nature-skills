@@ -94,8 +94,14 @@ def evidence_item_mentioned(card: str, item_id: str) -> bool:
             f"\u516c\u5f0f {number}",
         ],
     }
-    lower = card.lower()
-    return any(alias.lower() in lower for alias in aliases[kind])
+    return any(
+        re.search(
+            rf"(?<![A-Za-z0-9]){re.escape(alias)}(?![A-Za-z0-9])",
+            card,
+            re.IGNORECASE,
+        )
+        for alias in aliases[kind]
+    )
 
 
 def audit(
