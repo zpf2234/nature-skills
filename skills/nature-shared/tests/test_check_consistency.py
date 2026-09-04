@@ -58,6 +58,25 @@ class ConsistencyCheckerTests(unittest.TestCase):
         )
         self.assertIn("TERM_VARIANTS_PRESENT", {item.code for item in findings})
 
+    def test_tilde_fenced_code_is_ignored(self) -> None:
+        findings = self.run_text(
+            "The score was 8.26 in the abstract.\n"
+            "~~~text\n"
+            "A generated example reports 8.260.\n"
+            "~~~\n"
+        )
+        self.assertEqual([], findings)
+
+    def test_shorter_fence_does_not_close_code_block(self) -> None:
+        findings = self.run_text(
+            "The score was 8.26 in the abstract.\n"
+            "````text\n"
+            "```\n"
+            "A generated example reports 8.260.\n"
+            "````\n"
+        )
+        self.assertEqual([], findings)
+
 
 if __name__ == "__main__":
     unittest.main()

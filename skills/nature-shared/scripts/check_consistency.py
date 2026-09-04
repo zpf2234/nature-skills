@@ -51,12 +51,24 @@ def read_sources(paths: Sequence[Path]) -> dict[Path, str]:
 
 def visible_lines(text: str) -> Iterable[tuple[int, str]]:
     """Yield lines after removing Markdown fences and unescaped LaTeX comments."""
-    in_fence = False
+    fence_character = ""
+    fence_length = 0
     for line_number, raw_line in enumerate(text.splitlines(), 1):
-        if re.match(r"^\s*```", raw_line):
-            in_fence = not in_fence
+        fence = re.match(r"^\s*(`{3,}|~{3,})", raw_line)
+        if fence and not fence_character:
+            delimiter = fence.group(1)
+            fence_character = delimiter[0]
+            fence_length = len(delimiter)
             continue
-        if in_fence:
+        if fence_character:
+            closing_fence = re.match(r"^\s*(`{3,}|~{3,})\s*$", raw_line)
+            if (
+                closing_fence
+                and closing_fence.group(1)[0] == fence_character
+                and len(closing_fence.group(1)) >= fence_length
+            ):
+                fence_character = ""
+                fence_length = 0
             continue
         line = re.sub(r"(?<!\\)%.*$", "", raw_line)
         yield line_number, line
