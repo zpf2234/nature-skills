@@ -167,15 +167,21 @@ def request_images(payload: dict[str, Any], args: argparse.Namespace) -> dict[st
 
 
 def save_outputs(response: dict[str, Any], payload: dict[str, Any], args: argparse.Namespace) -> None:
+    items = response.get("data")
+    if not isinstance(items, list) or not items:
+        raise SystemExit("Image response did not contain any output images.")
+    if not all(isinstance(item, dict) for item in items):
+        raise SystemExit("Image response contains an invalid output item.")
+
     outdir = Path(args.outdir)
     outdir.mkdir(parents=True, exist_ok=True)
     basename = args.basename or time.strftime("openrouter_schematic_%Y%m%d_%H%M%S")
 
     saved: list[str] = []
-    for index, item in enumerate(response.get("data", []), start=1):
+    for index, item in enumerate(items, start=1):
         media_type = item.get("media_type")
         ext = media_extension(media_type, args.output_format)
-        suffix = "" if len(response.get("data", [])) == 1 else f"_{index:02d}"
+        suffix = "" if len(items) == 1 else f"_{index:02d}"
         outpath = outdir / f"{basename}{suffix}{ext}"
 
         if "b64_json" in item:
