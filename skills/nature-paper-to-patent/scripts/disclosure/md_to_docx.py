@@ -753,8 +753,9 @@ def convert_md_to_docx(
             while i < len(lines) and not lines[i].strip().startswith("```"):
                 code_lines.append(lines[i])
                 i += 1
-            if i < len(lines):
-                i += 1
+            if i >= len(lines):
+                raise ValueError("Unclosed fenced code block")
+            i += 1
             # 定稿 MD 保留 mermaid 源码 + 图示注释：Word 只嵌 PNG，不写源码块
             if fence_lang.lower() == "mermaid":
                 j = i
