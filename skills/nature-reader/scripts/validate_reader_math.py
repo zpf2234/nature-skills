@@ -23,7 +23,9 @@ LATEX_COMMAND_RE = re.compile(
     r"alpha|beta|gamma|delta|theta|lambda|mu|sigma|omega|partial|nabla|"
     r"mathcal|mathrm|mathbf|operatorname|overline|underline|widetilde|hat)\b"
 )
-MARKDOWN_IMAGE_RE = re.compile(r"!\[[^\]]*]\(([^)]+)\)")
+MARKDOWN_IMAGE_RE = re.compile(
+    r"!\[[^\]]*]\(\s*(?:<(?P<angle>[^>\n]+)>|(?P<bare>[^\s)]+))"
+)
 CHINESE_LINE_RE = re.compile(
     r"^\s*\*\*中文(?:说明|图注)?[:：]\*\*.*$", re.MULTILINE
 )
@@ -251,7 +253,10 @@ def validate_markdown(text: str) -> tuple[list[Finding], list[str], list[str]]:
             )
         )
 
-    image_paths = [match.group(1).strip().split()[0].strip("<>") for match in MARKDOWN_IMAGE_RE.finditer(text)]
+    image_paths = [
+        (match.group("angle") or match.group("bare")).strip()
+        for match in MARKDOWN_IMAGE_RE.finditer(text)
+    ]
     return findings, anchors, image_paths
 
 
