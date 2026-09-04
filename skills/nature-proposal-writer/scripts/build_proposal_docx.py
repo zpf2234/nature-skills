@@ -227,5 +227,8 @@ while i < len(lines):
     bp(line.strip())
     i += 1
 
+if in_code:
+    raise SystemExit("Unclosed fenced code block in proposal markdown.")
+
 doc.save(outpath)
 print(f"OK → {outpath}")
