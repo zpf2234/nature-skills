@@ -451,6 +451,10 @@ def main() -> int:
     if not source.is_file():
         print(f"ERROR: input file does not exist: {source}", file=sys.stderr)
         return 2
+    output = args.output.resolve()
+    if source == output:
+        print("ERROR: output bundle cannot overwrite the input source.", file=sys.stderr)
+        return 2
 
     try:
         if source.suffix.lower() == ".pdf":
@@ -465,7 +469,6 @@ def main() -> int:
         return 2
 
     bundle["validation"] = validate_bundle(bundle)
-    output = args.output.resolve()
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(bundle, ensure_ascii=False, indent=2), encoding="utf-8")
 

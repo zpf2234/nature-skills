@@ -138,6 +138,23 @@ class SourceMapLocatorTests(unittest.TestCase):
         self.assertEqual(bundle["unlocated_blocks"][0]["locator_status"], "invalid")
         self.assertIn("invalid page locators", "\n".join(bundle["validation"]["warnings"]))
 
+    def test_cli_output_cannot_overwrite_source_map(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "source-map.json"
+            original = json.dumps({"metadata": {"title": "Test"}, "blocks": []})
+            source.write_text(original, encoding="utf-8")
+
+            result = subprocess.run(
+                [sys.executable, str(SCRIPT_PATH), str(source), "--output", str(source)],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("cannot overwrite", result.stderr)
+            self.assertEqual(source.read_text(encoding="utf-8"), original)
+
 
 if __name__ == "__main__":
     unittest.main()
