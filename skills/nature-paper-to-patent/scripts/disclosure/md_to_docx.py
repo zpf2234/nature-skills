@@ -745,12 +745,17 @@ def convert_md_to_docx(
             continue
 
         # 围栏代码块
-        if line.strip().startswith("```"):
+        fence = re.match(r"^(`{3,}|~{3,})(.*)$", line.strip())
+        if fence:
             flush_paragraph()
-            fence_lang = line.strip()[3:].strip()
+            marker = fence.group(1)
+            fence_lang = fence.group(2).strip()
+            closing_fence = re.compile(
+                rf"^{re.escape(marker[0])}{{{len(marker)},}}\s*$"
+            )
             i += 1
             code_lines: list[str] = []
-            while i < len(lines) and not lines[i].strip().startswith("```"):
+            while i < len(lines) and not closing_fence.fullmatch(lines[i].strip()):
                 code_lines.append(lines[i])
                 i += 1
             if i < len(lines):
