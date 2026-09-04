@@ -255,15 +255,24 @@ def validate_markdown(text: str) -> tuple[list[Finding], list[str], list[str]]:
     return findings, anchors, image_paths
 
 
-def equation_entries(data: dict[str, Any]) -> list[dict[str, Any]]:
+def equation_entries(data: dict[str, Any]) -> tuple[list[dict[str, Any]], list[str]]:
     entries: dict[str, dict[str, Any]] = {}
+    duplicates: set[str] = set()
+    block_ids: set[str] = set()
     for item in data.get("blocks", []):
         if isinstance(item, dict) and item.get("type") == "equation" and isinstance(item.get("id"), str):
+            if item["id"] in block_ids:
+                duplicates.add(item["id"])
+            block_ids.add(item["id"])
             entries[item["id"]] = item
+    equation_ids: set[str] = set()
     for item in data.get("equations", []):
         if isinstance(item, dict) and isinstance(item.get("id"), str):
+            if item["id"] in equation_ids:
+                duplicates.add(item["id"])
+            equation_ids.add(item["id"])
             entries[item["id"]] = {**entries.get(item["id"], {}), **item}
-    return list(entries.values())
+    return list(entries.values()), sorted(duplicates)
 
 
 def validate_source_map(
@@ -278,9 +287,8 @@ def validate_source_map(
     if not isinstance(data, dict):
         return [Finding("FAIL", "INVALID_SOURCE_MAP", "Source map root must be a JSON object.")]
 
-    entries = equation_entries(data)
+    entries, duplicates = equation_entries(data)
     map_ids = [item.get("id") for item in entries]
-    duplicates = sorted({item for item in map_ids if map_ids.count(item) > 1})
     for equation_id in duplicates:
         findings.append(Finding("FAIL", "DUPLICATE_SOURCE_MAP_ID", f"Duplicate source-map ID: {equation_id}."))
 
