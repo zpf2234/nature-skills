@@ -40,7 +40,9 @@ def references(body: str) -> list[int]:
         if match.group(1):
             start = int(match.group(1))
             finish = int(match.group(2) or start)
-            result.extend(range(start, finish + 1))
+            result.extend(
+                range(start, finish + 1) if start <= finish else (start, finish)
+            )
         else:
             result.extend((int(match.group(3)), int(match.group(4))))
     return sorted(set(result))
@@ -69,6 +71,19 @@ def audit(text: str) -> list[Finding]:
         compact = normalize(body)
         claim_map[number] = compact
         refs = references(body)
+        for match in REFERENCE.finditer(body):
+            if match.group(1) and match.group(2):
+                start = int(match.group(1))
+                finish = int(match.group(2))
+                if start > finish:
+                    findings.append(
+                        Finding(
+                            "ERROR",
+                            number,
+                            "INVALID_REFERENCE_RANGE",
+                            f"引用范围起点{start}大于终点{finish}。",
+                        )
+                    )
 
         if not body:
             findings.append(Finding("ERROR", number, "EMPTY", "权利要求正文为空。"))
