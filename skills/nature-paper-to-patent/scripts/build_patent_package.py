@@ -7,6 +7,7 @@ import json
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 
@@ -68,6 +69,22 @@ def validate(data: dict) -> None:
             )
 
 
+def publish_artifacts(staging_dir: Path, output_dir: Path) -> None:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    for source in staging_dir.iterdir():
+        destination = output_dir / source.name
+        if source.is_dir():
+            if destination.is_dir():
+                shutil.rmtree(destination)
+            elif destination.exists():
+                destination.unlink()
+            shutil.move(str(source), str(destination))
+        else:
+            if destination.is_dir():
+                shutil.rmtree(destination)
+            source.replace(destination)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("draft", type=Path, help="UTF-8 patent draft JSON")
@@ -85,82 +102,97 @@ def main() -> int:
     sys.modules[validator_spec.name] = validator
     validator_spec.loader.exec_module(validator)
     validation_findings = validator.validate(data)
-    args.output_dir.mkdir(parents=True, exist_ok=True)
-    validation_report = args.output_dir / f"{args.prefix}-草稿验证报告.txt"
-    validation_report.write_text(
-        validator.format_report(validation_findings), encoding="utf-8"
-    )
     if any(item.level == "ERROR" for item in validation_findings):
+        args.output_dir.mkdir(parents=True, exist_ok=True)
+        validation_report = args.output_dir / f"{args.prefix}-草稿验证报告.txt"
+        validation_report.write_text(
+            validator.format_report(validation_findings), encoding="utf-8"
+        )
         print(validation_report)
         raise SystemExit(1)
 
     validate(data)
     docx_script = root / "render_patent_docx.py"
     figure_script = root / "render_flowchart_svg.py"
+    args.output_dir.parent.mkdir(parents=True, exist_ok=True)
+    staging_prefix = f".{args.output_dir.name or args.prefix}-build-"
+    with tempfile.TemporaryDirectory(
+        prefix=staging_prefix, dir=args.output_dir.parent
+    ) as temporary_dir:
+        staging_dir = Path(temporary_dir)
+        validation_report = staging_dir / f"{args.prefix}-草稿验证报告.txt"
+        validation_report.write_text(
+            validator.format_report(validation_findings), encoding="utf-8"
+        )
+        figure_dir = staging_dir / f"{args.prefix}-figures"
+        run(
+            [
+                sys.executable,
+                str(figure_script),
+                str(args.draft),
+                "--output-dir",
+                str(figure_dir),
+                "--png",
+            ]
+        )
 
-    figure_dir = args.output_dir / f"{args.prefix}-figures"
-    run(
-        [
-            sys.executable,
-            str(figure_script),
-            str(args.draft),
-            "--output-dir",
-            str(figure_dir),
-            "--png",
-        ]
-    )
+        outputs = {
+            "claims": staging_dir / f"{args.prefix}-权利要求书.docx",
+            "specification": staging_dir / f"{args.prefix}-说明书.docx",
+            "abstract": staging_dir / f"{args.prefix}-说明书摘要.docx",
+            "abstract-figure": staging_dir / f"{args.prefix}-摘要附图.docx",
+            "all": staging_dir / f"{args.prefix}-完整审阅稿.docx",
+        }
+        for part, output in outputs.items():
+            command = [
+                sys.executable,
+                str(docx_script),
+                str(args.draft),
+                "--output",
+                str(output),
+                "--part",
+                part,
+            ]
+            if part in {"specification", "abstract", "abstract-figure", "all"}:
+                command.extend(["--figure-dir", str(figure_dir)])
+            run(command)
 
-    outputs = {
-        "claims": args.output_dir / f"{args.prefix}-权利要求书.docx",
-        "specification": args.output_dir / f"{args.prefix}-说明书.docx",
-        "abstract": args.output_dir / f"{args.prefix}-说明书摘要.docx",
-        "abstract-figure": args.output_dir / f"{args.prefix}-摘要附图.docx",
-        "all": args.output_dir / f"{args.prefix}-完整审阅稿.docx",
-    }
-    for part, output in outputs.items():
-        command = [
-            sys.executable,
-            str(docx_script),
-            str(args.draft),
-            "--output",
-            str(output),
-            "--part",
-            part,
-        ]
-        if part in {"specification", "abstract", "abstract-figure", "all"}:
-            command.extend(["--figure-dir", str(figure_dir)])
-        run(command)
+        claims_text = staging_dir / f"{args.prefix}-权利要求书.txt"
+        claims_text.write_text(
+            "\n".join(f"{claim['number']}. {claim['text']}" for claim in data["claims"])
+            + "\n",
+            encoding="utf-8",
+        )
+        audit = staging_dir / f"{args.prefix}-权利要求检查.txt"
+        audit_script = root / "audit_claims.py"
+        spec = importlib.util.spec_from_file_location("patent_claim_audit", audit_script)
+        audit_module = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = audit_module
+        spec.loader.exec_module(audit_module)
+        findings = audit_module.audit(claims_text.read_text(encoding="utf-8"))
+        if findings:
+            lines = []
+            for finding in findings:
+                location = f"权利要求{finding.claim}" if finding.claim else "整体"
+                lines.append(
+                    f"{finding.level}\t{location}\t{finding.code}\t{finding.message}"
+                )
+        else:
+            lines = ["PASS: 未发现权利要求结构性问题。"]
+        audit.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        if any(finding.level == "ERROR" for finding in findings):
+            raise SystemExit(1)
 
-    claims_text = args.output_dir / f"{args.prefix}-权利要求书.txt"
-    claims_text.write_text(
-        "\n".join(f"{claim['number']}. {claim['text']}" for claim in data["claims"]) + "\n",
-        encoding="utf-8",
-    )
-    audit = args.output_dir / f"{args.prefix}-权利要求检查.txt"
-    audit_script = root / "audit_claims.py"
-    spec = importlib.util.spec_from_file_location("patent_claim_audit", audit_script)
-    audit_module = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = audit_module
-    spec.loader.exec_module(audit_module)
-    findings = audit_module.audit(claims_text.read_text(encoding="utf-8"))
-    if findings:
-        lines = []
-        for finding in findings:
-            location = f"权利要求{finding.claim}" if finding.claim else "整体"
-            lines.append(
-                f"{finding.level}\t{location}\t{finding.code}\t{finding.message}"
-            )
-    else:
-        lines = ["PASS: 未发现权利要求结构性问题。"]
-    audit.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    if any(finding.level == "ERROR" for finding in findings):
-        raise SystemExit(1)
-
-    json_copy = args.output_dir / f"{args.prefix}-结构化草稿.json"
-    if args.draft.resolve() != json_copy.resolve():
+        json_copy = staging_dir / f"{args.prefix}-结构化草稿.json"
         shutil.copy2(args.draft, json_copy)
 
-    for output in (*outputs.values(), json_copy, audit, validation_report):
+        published = [
+            args.output_dir / path.relative_to(staging_dir)
+            for path in (*outputs.values(), json_copy, audit, validation_report)
+        ]
+        publish_artifacts(staging_dir, args.output_dir)
+
+    for output in published:
         print(output)
     return 0
 
