@@ -10,9 +10,9 @@ from pathlib import Path
 
 CLAIM_START = re.compile(r"(?m)^\s*(\d+)\s*[.、．]\s*")
 REFERENCE = re.compile(
-    r"权利要求\s*(\d+)(?:\s*[-—~～至]\s*(\d+))?"
-    r"|权利要求\s*(\d+)\s*(?:或|、)\s*(\d+)"
+    r"权利要求\s*(\d+(?:\s*[-—~～至]\s*\d+)?(?:\s*(?:或|、)\s*\d+)*)"
 )
+REFERENCE_PART = re.compile(r"\d+|[-—~～至]|或|、")
 TERM_INTRO = re.compile(r"(?:所述|该)([\u4e00-\u9fffA-Za-z][\u4e00-\u9fffA-Za-z0-9_-]{1,20})")
 PLACEHOLDER = re.compile(r"\[(?:TO CONFIRM|待确认)[^\]]*\]", re.IGNORECASE)
 
@@ -35,14 +35,24 @@ def split_claims(text: str) -> list[tuple[int, str]]:
 
 
 def references(body: str) -> list[int]:
-    result = []
+    result: list[int] = []
     for match in REFERENCE.finditer(body):
-        if match.group(1):
-            start = int(match.group(1))
-            finish = int(match.group(2) or start)
-            result.extend(range(start, finish + 1))
-        else:
-            result.extend((int(match.group(3)), int(match.group(4))))
+        parts = REFERENCE_PART.findall(match.group(1))
+        if not parts:
+            continue
+        previous = int(parts[0])
+        result.append(previous)
+        for index in range(1, len(parts) - 1, 2):
+            separator = parts[index]
+            current = int(parts[index + 1])
+            if separator in {"-", "—", "~", "～", "至"}:
+                if current >= previous:
+                    result.extend(range(previous + 1, current + 1))
+                else:
+                    result.append(current)
+            else:
+                result.append(current)
+            previous = current
     return sorted(set(result))
 
 
