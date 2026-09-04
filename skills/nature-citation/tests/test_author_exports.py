@@ -156,6 +156,21 @@ class AuthorExportTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Invalid PMID"):
             MODULE.read_pmids(args)
 
+    def test_read_dois_normalizes_prefixes_and_removes_duplicates(self):
+        args = argparse.Namespace(
+            doi=[
+                "doi: 10.1000/Example",
+                "https://doi.org/10.1000/example",
+                "https://dx.doi.org/10.2000/second",
+            ],
+            doi_file=None,
+        )
+
+        self.assertEqual(
+            MODULE.read_dois(args),
+            ["10.1000/Example", "10.2000/second"],
+        )
+
     def test_failed_explicit_pmid_does_not_write_empty_success_export(self):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "references.ris"

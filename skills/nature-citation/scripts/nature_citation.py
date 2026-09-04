@@ -1111,11 +1111,16 @@ def read_dois(args: argparse.Namespace) -> list[str]:
             line = line.strip()
             if line and not line.startswith("#"):
                 dois.append(line)
-    cleaned = []
+    cleaned: list[str] = []
+    seen: set[str] = set()
     for doi in dois:
         doi = doi.strip()
+        doi = re.sub(r"^doi\s*:\s*", "", doi, flags=re.IGNORECASE)
         doi = re.sub(r"^https?://(?:dx\.)?doi\.org/", "", doi, flags=re.IGNORECASE)
-        if doi:
+        doi = doi.strip()
+        key = doi.casefold()
+        if doi and key not in seen:
+            seen.add(key)
             cleaned.append(doi)
     return cleaned
 
