@@ -30,6 +30,7 @@ _INLINE_PAREN_RE = re.compile(r"\\\(((?:\\.|[^)])+?)\\\)(?!\s*<!--)")
 _HIDDEN_IMG_COMMENT_RE = re.compile(
     r"<!--\s*!\[[^\]]*\]\([^)]+\)\s*-->"
 )
+_CODE_FENCE_START_RE = re.compile(r"^(`{3,}|~{3,})")
 
 # matplotlib mathtext 不识别部分 LaTeX 简写；按「长命令优先」映射为 mathtext 符号
 _LATEX_CMD_ALIASES: tuple[tuple[str, str], ...] = (
@@ -302,10 +303,15 @@ def render_markdown_math(
             continue
 
         # 围栏代码 / mermaid：不处理行内 $
-        if stripped.startswith("```"):
+        fence = _CODE_FENCE_START_RE.match(stripped)
+        if fence:
+            marker = fence.group(1)
+            closing_fence = re.compile(
+                rf"^{re.escape(marker[0])}{{{len(marker)},}}\s*$"
+            )
             out.append(lines[i])
             i += 1
-            while i < len(lines) and not lines[i].strip().startswith("```"):
+            while i < len(lines) and not closing_fence.fullmatch(lines[i].strip()):
                 out.append(lines[i])
                 i += 1
             if i < len(lines):
