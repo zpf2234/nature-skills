@@ -682,6 +682,8 @@ class TestDetectIdType:
         assert _detect_id_type("10.1038/nature12373") == "doi"
         assert _detect_id_type("10.1126/science.abc1234") == "doi"
         assert _detect_id_type("10.1016/j.cell.2023.01.001") == "doi"
+        assert _detect_id_type("https://doi.org/10.1038/nature12373") == "doi"
+        assert _detect_id_type("doi:10.1038/nature12373") == "doi"
 
     def test_detect_pmid(self):
         from academic_search_server import _detect_id_type

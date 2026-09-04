@@ -93,3 +93,23 @@ def test_search_papers_mcp_dispatch_accepts_elsevier_sources(monkeypatch):
         "rows": 1,
         "filter_type": "journal-article",
     }
+
+
+def test_get_paper_by_id_strips_doi_resolver_url(monkeypatch):
+    import academic_search_server
+
+    captured = {}
+
+    def fake_get_by_doi(doi):
+        captured["doi"] = doi
+        return {"doi": doi, "title": "Example"}
+
+    monkeypatch.setattr(academic_search_server._crossref, "get_by_doi", fake_get_by_doi)
+
+    payload = _call_tool_json(
+        "get_paper_by_id",
+        {"id": "https://doi.org/10.1038/example", "id_type": "auto"},
+    )
+
+    assert payload["doi"] == "10.1038/example"
+    assert captured == {"doi": "10.1038/example"}

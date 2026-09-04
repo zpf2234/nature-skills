@@ -37,13 +37,21 @@ _sciencedirect = ScienceDirectSource()
 # Helpers
 # ---------------------------------------------------------------------------
 
+DOI_PREFIX = re.compile(r"^(?:https?://(?:dx\.)?doi\.org/|doi:\s*)", re.IGNORECASE)
+
+
+def _normalize_identifier(identifier: str) -> str:
+    """Strip common DOI wrappers while leaving other identifier forms intact."""
+    return DOI_PREFIX.sub("", identifier.strip())
+
+
 def _detect_id_type(id: str) -> str:
     """Auto-detect identifier type.
 
     Returns one of: "doi", "pmid", "arxiv".
     Raises ValueError when detection fails.
     """
-    id = id.strip()
+    id = _normalize_identifier(id)
     if id.startswith("10.") and "/" in id:
         return "doi"
     if re.match(r"^\d{7,8}$", id):
@@ -468,24 +476,25 @@ def get_paper_by_id(id: str, id_type: str = "auto") -> str:
     if not id or not id.strip():
         return _json_error("Empty identifier")
 
+    normalized_id = _normalize_identifier(id)
     try:
-        resolved_type = _resolve_id_type(id, id_type)
+        resolved_type = _resolve_id_type(normalized_id, id_type)
     except ValueError as exc:
         return _json_error(str(exc))
 
     logger.info("get_paper_by_id called", extra={
         "tool": "get_paper_by_id",
-        "id": id,
+        "id": normalized_id,
         "id_type": resolved_type,
     })
 
     try:
         if resolved_type == "doi":
-            result = _crossref.get_by_doi(id.strip())
+            result = _crossref.get_by_doi(normalized_id)
         elif resolved_type == "pmid":
-            result = _pubmed.get_by_pmid(id.strip())
+            result = _pubmed.get_by_pmid(normalized_id)
         elif resolved_type == "arxiv":
-            result = _arxiv.get_by_id(id.strip())
+            result = _arxiv.get_by_id(normalized_id)
         else:
             return _json_error(f"Unsupported ID type: {resolved_type}")
     except DataSourceError as exc:
@@ -517,33 +526,34 @@ def get_citation(id: str, id_type: str = "auto", style: str = "apa") -> str:
     if not id or not id.strip():
         return _json_error("Empty identifier")
 
+    normalized_id = _normalize_identifier(id)
     try:
-        resolved_type = _resolve_id_type(id, id_type)
+        resolved_type = _resolve_id_type(normalized_id, id_type)
     except ValueError as exc:
         return _json_error(str(exc))
 
     logger.info("get_citation called", extra={
         "tool": "get_citation",
-        "id": id,
+        "id": normalized_id,
         "id_type": resolved_type,
         "style": style,
     })
 
     try:
         if resolved_type == "doi":
-            citation = _crossref.get_citation(id.strip(), style=style)
-            return _json_ok({"id": id, "style": style, "citation": citation})
+            citation = _crossref.get_citation(normalized_id, style=style)
+            return _json_ok({"id": normalized_id, "style": style, "citation": citation})
 
         # For non-DOI IDs, fetch metadata and build a basic citation
         if resolved_type == "pmid":
-            paper = _pubmed.get_by_pmid(id.strip())
+            paper = _pubmed.get_by_pmid(normalized_id)
         elif resolved_type == "arxiv":
-            paper = _arxiv.get_by_id(id.strip())
+            paper = _arxiv.get_by_id(normalized_id)
         else:
             return _json_error(f"Unsupported ID type: {resolved_type}")
 
         citation = _format_basic_citation(paper, style)
-        return _json_ok({"id": id, "style": style, "citation": citation})
+        return _json_ok({"id": normalized_id, "style": style, "citation": citation})
 
     except DataSourceError as exc:
         logger.error("get_citation failed: %s", exc)
