@@ -55,7 +55,9 @@ def main() -> int:
         paper = args.paper.resolve()
         if not paper.is_file():
             parser.error(f"paper does not exist: {paper}")
-        shutil.copy2(paper, project / "paper" / paper.name)
+        destination = project / "paper" / paper.name
+        if paper != destination.resolve():
+            shutil.copy2(paper, destination)
 
     intake = {
         "target_jurisdiction": "中国发明专利",
