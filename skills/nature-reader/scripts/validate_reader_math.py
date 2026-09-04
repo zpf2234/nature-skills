@@ -71,7 +71,7 @@ def fenced_ranges(
             open_fence = (marker[0], len(marker), match.start(), match.end(), language in {"math", "latex"})
             continue
         char, length, start, body_start, is_math = open_fence
-        if marker[0] == char and len(marker) >= length:
+        if marker[0] == char and len(marker) >= length and not match.group(2).strip():
             ranges.append((start, match.end()))
             if is_math:
                 math_ranges.append((start, match.end()))
