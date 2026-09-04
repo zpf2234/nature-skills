@@ -131,6 +131,29 @@ def display_math_ranges(text: str) -> tuple[list[tuple[int, int]], list[Finding]
     return ranges, findings
 
 
+def inline_code_ranges(text: str) -> list[tuple[int, int]]:
+    """Return Markdown code spans delimited by equal-length backtick runs."""
+    runs = list(re.finditer(r"`+", text))
+    ranges: list[tuple[int, int]] = []
+    index = 0
+    while index < len(runs):
+        opening = runs[index]
+        closing_index = next(
+            (
+                candidate
+                for candidate in range(index + 1, len(runs))
+                if len(runs[candidate].group(0)) == len(opening.group(0))
+            ),
+            None,
+        )
+        if closing_index is None:
+            index += 1
+            continue
+        ranges.append((opening.start(), runs[closing_index].end()))
+        index = closing_index + 1
+    return ranges
+
+
 def find_inline_dollar_problem(text: str) -> Finding | None:
     offsets = [match.start() for match in re.finditer(r"(?<!\\)(?<!\$)\$(?!\$)", text)]
     if len(offsets) % 2:
@@ -149,13 +172,14 @@ def validate_markdown(text: str) -> tuple[list[Finding], list[str], list[str]]:
     fence_ranges, math_fence_ranges, fence_findings = fenced_ranges(text)
     findings.extend(fence_findings)
     without_fences = mask_ranges(text, fence_ranges)
+    without_code = mask_ranges(without_fences, inline_code_ranges(without_fences))
 
-    display_ranges, display_findings = display_math_ranges(without_fences)
+    display_ranges, display_findings = display_math_ranges(without_code)
     findings.extend(display_findings)
 
     normalized_displays: dict[str, list[int]] = {}
     for start, end in display_ranges:
-        body = without_fences[start + 2 : end - 2].strip()
+        body = without_code[start + 2 : end - 2].strip()
         normalized = re.sub(r"\s+", "", body).rstrip(",.;")
         if normalized:
             normalized_displays.setdefault(normalized, []).append(start)
@@ -170,7 +194,7 @@ def validate_markdown(text: str) -> tuple[list[Finding], list[str], list[str]]:
                 )
             )
 
-    prose = mask_ranges(without_fences, display_ranges)
+    prose = mask_ranges(without_code, display_ranges)
 
     inline_problem = find_inline_dollar_problem(prose)
     if inline_problem:
@@ -251,7 +275,10 @@ def validate_markdown(text: str) -> tuple[list[Finding], list[str], list[str]]:
             )
         )
 
-    image_paths = [match.group(1).strip().split()[0].strip("<>") for match in MARKDOWN_IMAGE_RE.finditer(text)]
+    image_paths = [
+        match.group(1).strip().split()[0].strip("<>")
+        for match in MARKDOWN_IMAGE_RE.finditer(without_code)
+    ]
     return findings, anchors, image_paths
 
 
