@@ -49,8 +49,10 @@ def read_sources(paths: Sequence[Path]) -> dict[Path, str]:
     }
 
 
-def visible_lines(text: str) -> Iterable[tuple[int, str]]:
-    """Yield lines after removing Markdown fences and unescaped LaTeX comments."""
+def visible_lines(
+    text: str, *, strip_latex_comments: bool = True
+) -> Iterable[tuple[int, str]]:
+    """Yield visible lines, optionally removing unescaped LaTeX comments."""
     in_fence = False
     for line_number, raw_line in enumerate(text.splitlines(), 1):
         if re.match(r"^\s*```", raw_line):
@@ -58,8 +60,19 @@ def visible_lines(text: str) -> Iterable[tuple[int, str]]:
             continue
         if in_fence:
             continue
-        line = re.sub(r"(?<!\\)%.*$", "", raw_line)
+        line = (
+            re.sub(r"(?<!\\)%.*$", "", raw_line)
+            if strip_latex_comments
+            else raw_line
+        )
         yield line_number, line
+
+
+def source_lines(path: Path, text: str) -> Iterable[tuple[int, str]]:
+    return visible_lines(
+        text,
+        strip_latex_comments=path.suffix.lower() in {".tex", ".ltx"},
+    )
 
 
 def phrase_pattern(phrase: str) -> re.Pattern[str]:
@@ -75,7 +88,7 @@ def find_phrase_occurrences(
     pattern = phrase_pattern(phrase)
     occurrences: list[Occurrence] = []
     for path, text in sources.items():
-        for line_number, line in visible_lines(text):
+        for line_number, line in source_lines(path, text):
             for match in pattern.finditer(line):
                 occurrences.append(Occurrence(path, line_number, match.group(0)))
     return occurrences
@@ -120,7 +133,7 @@ def decimal_places(token: str) -> int:
 def check_numeric_precision(sources: dict[Path, str]) -> list[Finding]:
     values: dict[Decimal, dict[int, list[Occurrence]]] = {}
     for path, text in sources.items():
-        for line_number, line in visible_lines(text):
+        for line_number, line in source_lines(path, text):
             for match in NUMBER_PATTERN.finditer(line):
                 token = match.group(1)
                 try:
@@ -171,7 +184,7 @@ def normalized_unit(unit: str) -> str:
 def check_equivalent_length_units(sources: dict[Path, str]) -> list[Finding]:
     values: dict[Decimal, dict[str, list[Occurrence]]] = {}
     for path, text in sources.items():
-        for line_number, line in visible_lines(text):
+        for line_number, line in source_lines(path, text):
             for match in LENGTH_PATTERN.finditer(line):
                 number, raw_unit = match.groups()
                 unit = normalized_unit(raw_unit)

@@ -20,9 +20,10 @@ class ConsistencyCheckerTests(unittest.TestCase):
         self,
         text: str,
         groups: dict[str, tuple[str, ...]] | None = None,
+        suffix: str = ".tex",
     ) -> list[object]:
         with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / "manuscript.tex"
+            path = Path(directory) / f"manuscript{suffix}"
             path.write_text(text, encoding="utf-8")
             return CHECKER.run_checks([path], groups)
 
@@ -57,6 +58,20 @@ class ConsistencyCheckerTests(unittest.TestCase):
             {"test-object": ("specimen", "sample")},
         )
         self.assertIn("TERM_VARIANTS_PRESENT", {item.code for item in findings})
+
+    def test_markdown_percent_does_not_hide_rest_of_line(self) -> None:
+        findings = self.run_text(
+            "The baseline was 8.26; accuracy reached 95% and the final score was 8.260;",
+            suffix=".md",
+        )
+        self.assertIn("NUMERIC_PRECISION_VARIANT", {item.code for item in findings})
+
+    def test_latex_percent_still_starts_a_comment(self) -> None:
+        findings = self.run_text(
+            "The baseline was 8.26; accuracy reached 95% and an old score was 8.260;",
+            suffix=".tex",
+        )
+        self.assertEqual([], findings)
 
 
 if __name__ == "__main__":
